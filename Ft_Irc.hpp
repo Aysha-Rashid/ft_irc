@@ -16,6 +16,7 @@
 // #include <fstream>
 #include <unistd.h>
 
+extern bool running;
 class Client
 {
     private:
@@ -29,11 +30,12 @@ class Client
     class Server
 {
     private:
-        std::string _serverName;
-        std::string _password;
-        size_t      _port;
-        int         _socketFd;
-        struct sockaddr_in				_address;
+        std::string         _serverName;
+        std::string         _password;
+        size_t              _port;
+        int                 _socketFd;
+        struct sockaddr_in	_address;
+        socklen_t           _addrlen;
     public:
         std::vector<Client *> clients;
         Server(std::string name);
@@ -42,5 +44,6 @@ class Client
         std::string getPassword(void) const;
         void portAndPass(const std::string &port, std::string password);
         void creatingServer(Server &server);
+        void acceptConnection(void);
         int getSocket(void) const {return (_socketFd);};
 };

@@ -1,7 +1,6 @@
 #include "Ft_Irc.hpp"
-
 bool running = 1;
-void signal_handler(int signal)
+static void signal_handler(int signal)
 {
   if (signal == SIGINT)
 		running = 0;
