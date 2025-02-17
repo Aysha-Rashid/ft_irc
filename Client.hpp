@@ -3,24 +3,46 @@
 # include "Ft_Irc.hpp"
 # include <string>
 
-class Client
+enum    clientState
+{   
+    UNAUTHENTICTED,
+    AUTHENTICTED,
+    REGISTERED,
+    DISCONNECTED,
+};  
+
+class Client    
 {
 private:
     int _fd;
-    int _port;
+    std::string _ipAddr;
+    std::string _hostname;
     std::string _username;
     std::string _nickname;
     std::string _realname;
-    std::string _hostname;
-    
-public:
-    Client()
-    Client(int fd);
+    clientState  _state;
+    int _channelCount;
+    Client();  
     Client(const Client &other);
+    Client &operator = (const Client &other);
+
+public:
+    Client(int fd,std::string &ip, std::string  &hostname);
     ~Client();
+
+    //getters
+    int getFd(void) const;
+    std::string getHostName(void)   const;
+    std::string getUserName(void)   const;
+    std::string getRealName(void)   const;
+    std::string getNickName(void)   const;
+    clientState getState(void)  const;
+    int getChannelCount(void)   const;
+
+    //setters
+    void    setHostName()
+    //member    functions
+    void    sendMessage(const   std::string msg)    const;
 };
-
-
-
 
 # endif
