@@ -17,8 +17,6 @@ int main(int argc, char **argv)
         signal(SIGINT, signal_handler);
         start.creatingServer(start);
 
-        // start with client here
-
         // Close all sockets before exiting
         // ctr+D is used to simulate how TCP/IP may split messages into multiple packets.
                 // must handle these fragmented messages and only execute complete commands.

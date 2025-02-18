@@ -22,12 +22,14 @@ class Client
     private:
         int _socketFd;
     public:
-        Client() {}
+        bool authenticated;
+        Client(){};
+        Client(int socketFd) :_socketFd(socketFd) {}
         void setSocket(int socket) {this->_socketFd = socket;};
         int getSocket(void) const {return (_socketFd);};
     };
     
-    class Server
+class Server
 {
     private:
         std::string         _serverName;
@@ -36,14 +38,20 @@ class Client
         int                 _socketFd;
         struct sockaddr_in	_address;
         socklen_t           _addrlen;
+        fd_set              _readfds;
+        int                 _maxfd;
     public:
         std::vector<Client *> clients;
         Server(std::string name);
         ~Server();
-        size_t getPort(void) const;
+        size_t      getPort(void) const;
         std::string getPassword(void) const;
-        void portAndPass(const std::string &port, std::string password);
-        void creatingServer(Server &server);
-        void acceptConnection(void);
-        int getSocket(void) const {return (_socketFd);};
+        int         getSocket(void) const {return (_socketFd);};
+        void        portAndPass(const std::string &port, std::string password);
+        void        creatingServer(Server &server);
+        void        acceptConnection(void);
+        void        run(void);
+        void        setFds(void);
+        void        ClientCommunication(void);
+        void        broadcastMessage(int sender, const std::string &message);
 };

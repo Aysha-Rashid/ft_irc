@@ -2,22 +2,25 @@
 Server::Server(std::string name) : _serverName(name) {}
 Server::~Server()
 {
-    if (!this->clients.empty())
+    std::string quitMsg = "server QUIT :Server shutting down\n";
+
+    if (!clients.empty())
     {
         for (size_t i = 0; i < clients.size(); i++) {
             int clientSocket = clients[i]->getSocket();
-            // send(clientSocket, quitMsg.c_str(), quitMsg.length(), 0);
-            // Maybe if client will exits on its own from their side then we dont need to send them the message
-            // maybe Delete the client in its function?? or should we delete them here when server is down
-            if (clientSocket > 0)
-              close(clientSocket);
-            std::cout << "server QUIT :cleaning up kids && Server shutting down\r\n";
+            
+            if (clientSocket > 0) {
+                send(clientSocket, quitMsg.c_str(), quitMsg.length(), 0);
+                close(clientSocket);
+            }
+
+            delete clients[i];
         }
     }
-    else
-        std::cout << "server QUIT :Server shutting down\r\n";
     clients.clear();
+    std::cout << "server QUIT :Server shutting down\r\n";
 }
+
 size_t Server::getPort(void) const
 {
     return (this->_port);
@@ -43,7 +46,7 @@ void Server::portAndPass(const std::string& port, std::string password)
     this->_password = password;
 }
 
-void checkError(int result, const char *error, const std::string &errmeg)
+static void checkError(int result, const char *error, const std::string &errmeg)
 {
     if (result < 0)
     {
@@ -51,28 +54,124 @@ void checkError(int result, const char *error, const std::string &errmeg)
         throw std::runtime_error(errmeg);
     }
 }
-static void signal_handler(int signal)
-{
-  if (signal == SIGINT)
-		running = 0;
-}
-void Server::acceptConnection(void)
-{
-    int new_socket;
-    while (running)
-    {
-        new_socket = accept(_socketFd, (struct sockaddr *)&_address, &_addrlen);
 
-        if (new_socket < 0) 
-        {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                continue;
-            else
-                checkError(new_socket, "accept failed", "Error: Failed to accept incoming connection");
-            std::cout << "Client connected!" << std::endl;
+void Server::setFds() {
+    FD_ZERO(&_readfds);
+    FD_SET(_socketFd, &_readfds);
+    _maxfd = _socketFd;
+
+    for (std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+        Client* client = *it;
+        FD_SET(client->getSocket(), &_readfds);
+        if (client->getSocket() > _maxfd) {
+            _maxfd = client->getSocket();
         }
     }
-    close(new_socket);
+}
+
+void Server::acceptConnection(void)
+{
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    int newClient = accept(_socketFd, (struct sockaddr*)&client_addr, &client_len);
+
+    if (newClient >= 0){
+        std::cout << "New client attempting to connect: " << newClient << std::endl;
+
+        // Make sure it's non-blocking
+        fcntl(newClient, F_SETFL, O_NONBLOCK);
+
+        // Create client object and mark as unauthenticated
+        Client *currentClient = new Client();
+        currentClient->setSocket(newClient);
+        currentClient->authenticated = false;  // New field in `Client` class
+        clients.push_back(currentClient);
+
+        // Send password prompt (ClientCommunication() will handle receiving)
+        std::string passwordPrompt = "Enter server password: ";
+        send(newClient, passwordPrompt.c_str(), passwordPrompt.length(), 0);
+    }
+}
+
+void Server::broadcastMessage(int sender, const std::string &message) {
+    for (std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+        Client* client = *it;
+        if (client->getSocket() != sender) {
+            send(client->getSocket(), message.c_str(), message.length(), 0);
+        }
+    }
+}
+
+void Server::ClientCommunication()
+{
+    for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end(); )
+    {
+        Client* client = *it;
+        if (FD_ISSET(client->getSocket(), &_readfds))
+        {
+            char buffer[1024];
+            int bytesReceived = recv(client->getSocket(), buffer, sizeof(buffer), 0);
+
+            if (bytesReceived <= 0)
+            {
+                std::cout << "Client " << client->getSocket() << " disconnected." << std::endl;
+                close(client->getSocket());
+                delete client;
+                it = clients.erase(it);
+                continue;
+            }
+
+            buffer[bytesReceived] = '\0';
+            std::string message(buffer);
+            message.erase(message.find_last_not_of("\r\n") + 1); // Trim newlines
+
+            // 🔥 **Authentication Handling** 🔥
+            if (!client->authenticated)
+            {
+                if (message == _password)
+                {
+                    client->authenticated = true;
+                    std::string successMsg = "Authentication successful. Welcome!\n";
+                    send(client->getSocket(), successMsg.c_str(), successMsg.length(), 0);
+                    std::cout << "Client " << client->getSocket() << " authenticated.\n";
+                }
+                else
+                {
+                    std::string errorMsg = "Incorrect password. Connection closed.\n";
+                    send(client->getSocket(), errorMsg.c_str(), errorMsg.length(), 0);
+                    close(client->getSocket());
+                    delete client;
+                    it = clients.erase(it);
+                    continue;
+                }
+            }
+            else
+            {
+                std::string broadcastMsg = "Client " + std::to_string(client->getSocket()) + ": " + message;
+                std::cout << broadcastMsg << std::endl;
+                broadcastMessage(client->getSocket(), broadcastMsg);
+            }
+        }
+        ++it;
+    }
+}
+
+
+void Server::run(void)
+{
+    while (running)
+    {
+        this->setFds();
+        int activity = select(_maxfd + 1, &_readfds, NULL, NULL, NULL);
+        if (activity < 0) {
+            std::cerr << "Error in select" << std::endl;
+            continue;
+        }
+        // Check if there's a new connection
+        if (FD_ISSET(_socketFd, &_readfds))
+            acceptConnection();
+        ClientCommunication();
+    }
 }
 
 void    Server::creatingServer(Server &server)
@@ -84,7 +183,7 @@ void    Server::creatingServer(Server &server)
     _address.sin_addr.s_addr = INADDR_ANY;
     _address.sin_port = htons(_port);
     _addrlen = sizeof(_address);
-    _socketFd = socket(AF_INET, SOCK_STREAM, 0); // setting up socket
+    _socketFd = socket(AF_INET, SOCK_STREAM, 0); // setting up socket ((domain)AF_INET - IPv4) ((type)SOCK_STREAM - tcp PROTOCOL) (0 - default for TCP)
     checkError(_socketFd, "socket failed", "Error: Failed to create the server socket"); 
     checkError(setsockopt(_socketFd, SOL_SOCKET, SO_REUSEADDR, &sockOpt, sizeof(int)), "setsockopt","Error: Failed to set socket options"); // making the socket/port reusable 
     checkError(fcntl(_socketFd, F_SETFL, O_NONBLOCK), "fcntl failed", "Error setting socket flags"); //setting socket flag and making it non-block
@@ -92,5 +191,5 @@ void    Server::creatingServer(Server &server)
     checkError(listen(_socketFd, 500), "listen", "Error: Failed to start listening for incoming connections"); // letting all the clients know that its available for connection
     std::cout << "Server started and listening for incoming connections on port " << _port << std::endl;
     // waiting for client connection
-    acceptConnection();
+    server.run();
 }
