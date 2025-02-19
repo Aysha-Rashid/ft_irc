@@ -77,19 +77,17 @@ void Server::acceptConnection(void)
 
     if (newClient >= 0){
         std::cout << "New client attempting to connect: " << newClient << std::endl;
-
-        // Make sure it's non-blocking
         fcntl(newClient, F_SETFL, O_NONBLOCK);
 
         // Create client object and mark as unauthenticated
+        // Send password prompt (ClientCommunication() will handle receiving)
+        std::string passwordPrompt = "Enter server password: ";
+        send(newClient, passwordPrompt.c_str(), passwordPrompt.length(), 0);
         Client *currentClient = new Client();
         currentClient->setSocket(newClient);
         currentClient->authenticated = false;  // New field in `Client` class
         clients.push_back(currentClient);
 
-        // Send password prompt (ClientCommunication() will handle receiving)
-        std::string passwordPrompt = "Enter server password: ";
-        send(newClient, passwordPrompt.c_str(), passwordPrompt.length(), 0);
     }
 }
 
@@ -110,8 +108,7 @@ void Server::ClientCommunication()
         if (FD_ISSET(client->getSocket(), &_readfds))
         {
             char buffer[1024];
-            int bytesReceived = recv(client->getSocket(), buffer, sizeof(buffer), 0);
-
+            int bytesReceived = recv(client->getSocket(), buffer, sizeof(buffer) - 1, 0);
             if (bytesReceived <= 0)
             {
                 std::cout << "Client " << client->getSocket() << " disconnected." << std::endl;
@@ -120,12 +117,10 @@ void Server::ClientCommunication()
                 it = clients.erase(it);
                 continue;
             }
-
             buffer[bytesReceived] = '\0';
             std::string message(buffer);
-            message.erase(message.find_last_not_of("\r\n") + 1); // Trim newlines
+            message.erase(message.find_last_not_of("\r\n") + 1);
 
-            // 🔥 **Authentication Handling** 🔥
             if (!client->authenticated)
             {
                 if (message == _password)
@@ -147,15 +142,16 @@ void Server::ClientCommunication()
             }
             else
             {
-                std::string broadcastMsg = "Client " + std::to_string(client->getSocket()) + ": " + message;
-                std::cout << broadcastMsg << std::endl;
+                // Message for other clients
+                std::string broadcastMsg = "Client " + std::to_string(client->getSocket()) + ": " + message + "\n";
                 broadcastMessage(client->getSocket(), broadcastMsg);
+                // Server logs (same as broadcast message)
+                std::cout << broadcastMsg;
             }
         }
         ++it;
     }
 }
-
 
 void Server::run(void)
 {
