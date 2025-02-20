@@ -21,10 +21,14 @@ class Client
 {
     private:
         int _socketFd;
+        std::string _username;
     public:
         bool authenticated;
+        bool waitingForUsername;
         Client(){};
         Client(int socketFd) :_socketFd(socketFd) {}
+        std::string getUserName(void) const {return (_username);};
+        void setUserName(std::string username) {_username = username;};
         void setSocket(int socket) {this->_socketFd = socket;};
         int getSocket(void) const {return (_socketFd);};
     };
