@@ -1,19 +1,10 @@
 #include "Ft_Irc.hpp"
-#include <vector>
-#include <cctype>
-#include <cstdlib>
-
-
-void portAndPass(const std::string& port, char *password)
+bool running = 1;
+static void signal_handler(int signal)
 {
-    for (std::string::const_iterator it = port.begin(); it != port.end(); ++it) {
-        if (!std::isdigit(*it))
-            throw std::runtime_error("Invalid Port");
-    }
-    char *end;
-    int value = strtol(port.c_str(), &end, 10);
+  if (signal == SIGINT)
+		running = 0;
 }
-
 
 int main(int argc, char **argv)
 {
@@ -21,7 +12,14 @@ int main(int argc, char **argv)
     {
         if (argc != 3)
             throw std::runtime_error("Not right numbers of arguments!");
-        portAndPass(argv[1], argv[2]);
+        Server start("IRC");
+        start.portAndPass(argv[1], argv[2]);
+        signal(SIGINT, signal_handler);
+        start.creatingServer(start);
+
+        // Close all sockets before exiting
+        // ctr+D is used to simulate how TCP/IP may split messages into multiple packets.
+                // must handle these fragmented messages and only execute complete commands.
     }
     catch (const std::exception& e)
     {
