@@ -1,6 +1,7 @@
 # ifndef CLIENT_HPP
 # define CLIENT_HPP
 # include "Ft_Irc.hpp"
+# include <sys/socket.h>
 # include <string>
 
 enum    clientState
@@ -31,6 +32,13 @@ public:
     Client(int fd,std::string &ip, std::string  &hostname);
     ~Client();
 
+    //setters
+    void    setHostName(std::string &hostname);
+    void    setNickName(std::string &nickname);
+    void    setUserName(std::string &username);
+    void    setRealName(std::string &realname);
+    void    setState(clientState state);
+
     //getters
     int getFd(void) const;
     std::string getHostName(void)   const;
@@ -41,15 +49,11 @@ public:
     clientState getState(void)  const;
     int getChannelCount(void)   const;
 
-    //setters
-    void    setHostName(std::string &hostname);
-    void    setUserName(std::string &username);
-    void    setRealName(std::string &realname);
-    void    setNickName(std::string &nickname);
-    void    setState(clientState state);
-
     //member    functions
     void    write(const   std::string msg)    const;
+    void incrementChannelCount(void);
+    void decrementChannelCount(void);
+
 };
 
 # endif
