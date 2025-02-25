@@ -2,8 +2,10 @@
 bool running = 1;
 static void signal_handler(int signal)
 {
-  if (signal == SIGINT)
+    if (signal == SIGINT)
 		running = 0;
+    if (signal == SIGQUIT)
+        ;
 }
 
 int main(int argc, char **argv)

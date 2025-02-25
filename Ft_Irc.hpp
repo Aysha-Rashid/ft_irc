@@ -30,11 +30,21 @@ class Client
         std::string _username;
         std::string _nickName;
         std::string _realName;
-    public:
+        std::string inputBuffer;
         bool authenticated;
         bool waitingForUsername;
         bool waitingForNickName;
-        Client(){};
+        bool registered;
+        int out;
+
+    public:
+        Client()
+        {
+            this->authenticated = false;
+            this->waitingForNickName = false;
+            this->waitingForUsername = false;
+            this->registered = false;
+        };
         Client(int socketFd) :_socketFd(socketFd) {}
         std::string getUserName(void) const {return (_username);};
         std::string getNickName(void) const {return (_nickName);};
@@ -49,6 +59,7 @@ class Client
         bool isValidNickName(const std::string& nickName);
         void broadcastMessage(Server *server, int sender, const std::string &message);
         void printClientError(int socket, std::string Errmessage);
+        int handleAuthentication(std::string message, Client **client, Server *server);
 };
     
 class Server
@@ -68,6 +79,7 @@ class Server
         ~Server();
         size_t      getPort(void) const;
         std::string getPassword(void) const;
+        std::string getServerName(void) const { return (_serverName);};
         fd_set      &getReadfds(void) { return(_readfds);};
         int         getSocket(void) const {return (_socketFd);};
         void        portAndPass(const std::string &port, std::string password);

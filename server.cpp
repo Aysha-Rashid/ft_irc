@@ -69,18 +69,25 @@ void Server::setFds() {
     }
 }
 
+static void signal_handler(int signal)
+{
+    if (signal == SIGINT)
+		running = 0;
+    if (signal == SIGQUIT)
+        running = 1;
+}
+
 void Server::acceptConnection(void)
 {
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     int newClient = accept(_socketFd, (struct sockaddr*)&client_addr, &client_len);
-
     if (newClient >= 0){
         std::cout << "New client attempting to connect: " << newClient << std::endl;
         fcntl(newClient, F_SETFL, O_NONBLOCK);
         Client *currentClient = new Client();
         currentClient->setSocket(newClient);
-        currentClient->authenticated = false;
+        // currentClient->authenticated = false;
         clients.push_back(currentClient);
     }
 }
@@ -97,10 +104,10 @@ void Client::broadcastMessage(Server *server, int sender, const std::string &mes
 bool Client::isNickNameInUse(Server *server, const std::string& nickName) {
     for (std::vector<Client *>::iterator it = server->clients.begin(); it != server->clients.end(); it++) {
         if ((*it)->getNickName() == nickName) {
-            return false;
+            return true;
         }
     }
-    return true;
+    return false;
 }
 
 bool Client::isValidNickName(const std::string& nickName) {
@@ -115,88 +122,119 @@ void Client::printClientError(int socket, std::string Errmessage)
     send(socket, Errmessage.c_str(), Errmessage.length(), 0);
     std::cout << Errmessage;
 }
+
+int Client::handleAuthentication(std::string message, Client **client, Server *server)
+{
+    if (!(*client)->authenticated) {
+        if (message.substr(0, 5) == "PASS ") {
+            if (message.substr(5) == server->getPassword())
+                (*client)->authenticated = true;
+            else {
+                printClientError((*client)->getSocket(), "Incorrect Password\r\n");
+                return 1;
+            }
+        }
+    }
+    if ((*client)->authenticated && (!(*client)->waitingForNickName || !(*client)->waitingForUsername)) {
+        if (message.substr(0, 5) == "NICK ") {
+            if (!isValidNickName(message.substr(5)))
+                printClientError((*client)->getSocket(), ERR_ERRONEUSNICKNAME);
+            else if (isNickNameInUse(server, message.substr(5)))
+                printClientError((*client)->getSocket(), ERR_NICKNAMEINUSE);
+            else {
+                (*client)->setNickName(message.substr(5));
+                (*client)->waitingForNickName = true;
+            }
+        }
+        if (message.substr(0, 5) == "USER ") {
+            std::stringstream ss(message.substr(5));
+            std::string username, realName, permission;
+            char mode;
+            ss >> username >> mode >> permission >> realName;
+            if (ss.fail() || username.empty() || permission.empty() || realName.empty())
+                printClientError((*client)->getSocket(), ERR_NEEDMOREPARAMS);
+            else
+            {
+                if (mode > '8' && mode < '0')  
+                    printClientError((*client)->getSocket(), "Invalid arguments\r\n");
+                else
+                {
+                    (*client)->setUserName(username);
+                    (*client)->setRealName(realName);
+                    (*client)->waitingForUsername = true;
+                }
+            }
+        }
+    }
+    return (0);
+}
+
 void Client::ClientCommunication(Server *server) {
+    out = 0;
     for (std::vector<Client *>::iterator it = server->clients.begin(); it != server->clients.end();) {
         Client* client = *it;
-
         if (FD_ISSET(client->getSocket(), &server->getReadfds())) {
             char buffer[1024];
             int bytesReceived = recv(client->getSocket(), buffer, sizeof(buffer) - 1, 0);
-
-            if (bytesReceived <= 0) {
+            if (bytesReceived == 0) {
                 std::cout << "Client " << client->getSocket() << " disconnected." << std::endl;
                 close(client->getSocket());
                 delete client;
                 it = server->clients.erase(it);
                 continue;
             }
+            if (bytesReceived < 0) {
+                perror("recv error");
+                continue;
+            }
             buffer[bytesReceived] = '\0';
-            std::string message(buffer);
-            message.erase(message.find_last_not_of("\r\n") + 1);
-
-            if (!client->authenticated)
-            {
-                if (message.substr(0, 5) == "PASS ")
+            std::string receivedData(buffer);
+            client->inputBuffer += receivedData;
+            size_t newlinePos;
+            while ((newlinePos = client->inputBuffer.find('\n')) != std::string::npos) {
+                std::string message = client->inputBuffer.substr(0, newlinePos);
+                client->inputBuffer.erase(0, newlinePos + 1); // Remove processed part
+                if (!message.empty() && message.back() == '\r')
+                    message.pop_back();
+                // if (message.empty()) continue;
+                if (handleAuthentication(message, &client, server))
                 {
-                    if (message.substr(5) == server->getPassword())
-                        client->authenticated = true;
-                    else
+                    std::cout << "Client " << client->getSocket() << " disconnected." << std::endl;
+                    close(client->getSocket());
+                    delete client;
+                    it = server->clients.erase(it);  // Remove from client list
+                    out = true;
+                    break;
+                }
+                if (client->authenticated && client->waitingForUsername && client->waitingForNickName && !client->registered) {
+                    client->registered = true;
+                    std::string welcomeMsg = ":" + server->getServerName() + " 001 " + client->getNickName() + " :Welcome to the IRC server, " + client->getNickName() + "\r\n";
+                    // server 001 is a numeric reply code used by the IRC server to indicate that the client has successfully connected.
+                    send(client->getSocket(), welcomeMsg.c_str(), welcomeMsg.length(), 0);
+                    std::cout << welcomeMsg;
+                }
+                else if (client->registered)
+                {
+                    if (message == "/QUIT")
                     {
-                        client->waitingForUsername = false;
-                        client->waitingForNickName = false; 
+                        std::cout << "Client " << client->getSocket() << " disconnected." << std::endl;
+                        close(client->getSocket());
+                        delete client;
+                        it = server->clients.erase(it);
+                        out = true;
+                        break; 
                     }
+                    std::string broadcastMsg = client->getNickName() + ": " + message + "\r\n";
+                    broadcastMessage(server, client->getSocket(), broadcastMsg);
+                    std::cout << broadcastMsg;
                 }
             }
-            if (client->authenticated && (!client->waitingForUsername || !client->waitingForNickName)) {
-                if (message.substr(0, 5) == "NICK ") {
-                    if (message.empty()) 
-                        printClientError(client->getSocket(), ERR_NONICKNAMEGIVEN);
-                    else if (!isValidNickName(message.substr(5)))
-                        printClientError(client->getSocket(), ERR_ERRONEUSNICKNAME);
-                    else if (!isNickNameInUse(server, message.substr(5)))
-                        printClientError(client->getSocket(), ERR_NICKNAMEINUSE);
-                    else
-                    {
-                        client->setNickName(message.substr(5));
-                        client->waitingForNickName = true;
-                    }
-                }
-                if (client->waitingForNickName)
-                {
-                    if (message.substr(0, 5) == "USER ") {
-                        std::stringstream ss(message.substr(5));
-                        std::string username, realName, permission;
-                        int mode = 0;
-                        ss >> username >> mode >> permission >> realName;
-                        if (ss.fail() || username.empty() || permission.empty() || realName.empty())
-                            printClientError(client->getSocket(), ERR_NEEDMOREPARAMS);
-                        else
-                        {
-                            // if (!isdigit(mode))  
-                            //     printClientError(client->getSocket(), "Invalid arguments\r\n");
-                            // else
-                            // {
-                                client->setUserName(username);
-                                client->setRealName(realName);
-                                client->waitingForUsername = true;
-                            // }
-                        }
-                    }
-                }
-            } 
-            if (client->authenticated && client->waitingForUsername && client->waitingForNickName){
-                // for other server.clients and server (general chats)
-                std::string broadcastMsg = client->getUserName() + ": " + message + "\r\n";
-                broadcastMessage(server, client->getSocket(), broadcastMsg);
-                std::cout << broadcastMsg;
-            }
-            // else
-            //     std::cout << message << std::endl;
+            if (out == 1)
+                continue;
         }
         ++it;
     }
 }
-
 
 void Server::run(void)
 {
