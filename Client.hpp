@@ -10,6 +10,7 @@ class Client
         std::string _nickName;
         std::string _realName;
         std::string inputBuffer;
+        std::string channel;
         bool authenticated;
         bool waitingForUsername;
         bool waitingForNickName;
