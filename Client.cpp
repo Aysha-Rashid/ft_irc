@@ -1,14 +1,14 @@
 #include "Ft_Irc.hpp"
 
-void Client::broadcastMessage(Server *server, int sender, const std::string &message) {
-	for (std::vector<Client*>::iterator it = server->clients.begin(); it != server->clients.end(); ++it) {
-		Client* client = *it;
-
-		if (client->authenticated && (client->waitingForUsername || client->waitingForNickName) && client->getSocket() != sender) { 
-			send(client->getSocket(), message.c_str(), message.length(), 0);
-		}
-	}
+void Client::broadcastMessage(Server *server, Client *curClient, const std::string &message) {
+    for (std::vector<Client*>::iterator it = server->clients.begin(); it != server->clients.end(); ++it) {
+        Client* client = *it;
+            if (client->authenticated && client->registered && client->joinChannel && client->getChannel() == curClient->getChannel() && client->getSocket() != curClient->getSocket()) {
+            	send(client->getSocket(), message.c_str(), message.length(), 0);
+        }
+    }
 }
+
 
 bool Client::isNickNameInUse(Server *server, const std::string& nickName) {
 	for (std::vector<Client *>::iterator it = server->clients.begin(); it != server->clients.end(); it++) {
@@ -20,7 +20,7 @@ bool Client::isNickNameInUse(Server *server, const std::string& nickName) {
 }
 
 bool Client::isValidNickName(const std::string& nickName) {
-	if (nickName.empty() || nickName.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") != std::string::npos) {
+	if (nickName.empty() || nickName.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") != std::string::npos || nickName.length() > 9) {
 		return false;
 	}
 	return true;
@@ -52,6 +52,7 @@ int Client::handleAuthentication(std::string message, Client **client, Server *s
 				printClientError((*client)->getSocket(), ERR_NICKNAMEINUSE);
 			else {
 				(*client)->setNickName(nick);
+				std::cout << "checking nickname : " << (*client)->_nickName << std::endl;
 				(*client)->waitingForNickName = true;
 			}
 		}
@@ -78,7 +79,8 @@ int Client::handleAuthentication(std::string message, Client **client, Server *s
 
 void Client::disconnected(Client *&client, int socket) {
 	if (client != nullptr) {
-		std::cout << "Client " << client->getSocket() << " disconnected." << std::endl;
+		if (!client->getNickName().empty())
+			std::cout << this->getNickName() << " disconnected." << std::endl;
 		close(client->getSocket());
 		delete client;
 		client = nullptr; // To prevent further access to the deleted pointer
@@ -86,6 +88,29 @@ void Client::disconnected(Client *&client, int socket) {
 	}
 }
 
+void trim(std::string& str) {
+	str.erase(0, str.find_first_not_of(' '));
+	str.erase(str.find_last_not_of(' ') + 1);
+}
+
+int Client::Commands(Client **client, int socket, std::string commands, Server *server)
+{
+	if (commands.substr(0, 5) == "JOIN ") {
+		(*client)->_channel = commands.substr(5);  // Set the channel
+		trim((*client)->_channel);  // Clean the channel name
+		if (!(*client)->_channel.empty() && (*client)->_channel[0] == '#' && (*client)->_channel.length() > 1) {
+			(*client)->joinChannel = true;  // Mark as joined
+			std::cout << "checking command " << commands << std::endl;
+			std::string broadcastMsg = (*client)->getNickName() + ": " + commands + "\r\n";
+			broadcastMessage(server, (*client), broadcastMsg);  // Broadcast the join message
+		}
+	}
+	else if (commands.substr(0, 5) == "QUIT")
+		disconnected((*client), (*client)->getSocket());
+	else
+		return 0;
+	return (1);
+}
 
 void Client::ClientCommunication(Server *server) {
 	out = 0;
@@ -95,7 +120,8 @@ void Client::ClientCommunication(Server *server) {
 			char buffer[1024];
 			int bytesReceived = recv(client->getSocket(), buffer, sizeof(buffer) - 1, 0);
 			if (bytesReceived == 0) {
-				disconnected(client, client->getSocket());
+				Commands(&client, client->getSocket(), "QUIT", server);
+				// disconnected(client, client->getSocket());
 				it = server->clients.erase(it);
 				continue;
 			}
@@ -107,16 +133,19 @@ void Client::ClientCommunication(Server *server) {
 			std::string receivedData(buffer);
 			client->inputBuffer += receivedData;
 			size_t newlinePos;
-			while ((newlinePos = client->inputBuffer.find('\n')) != std::string::npos) {
+			while ((newlinePos = client->inputBuffer.find('\n')) != std::string::npos) // to handle the ctrl+d buffer
+			{
 				std::string message = client->inputBuffer.substr(0, newlinePos);
+				if (message[0] == '/')
+					message = message.substr(1);
 				client->inputBuffer.erase(0, newlinePos + 1); // Remove processed part
 				if (!message.empty() && message.back() == '\r')
 					message.pop_back();
 				if (message.empty()) continue;
 				if (handleAuthentication(message, &client, server))
 				{
-					disconnected(client, client->getSocket());
-					it = server->clients.erase(it);  // Remove from client list
+					Commands(&client, client->getSocket(), "QUIT", server);
+					it = server->clients.erase(it);
 					break;
 				}
 				if (client->authenticated && client->waitingForUsername && client->waitingForNickName && !client->registered) {
@@ -128,36 +157,32 @@ void Client::ClientCommunication(Server *server) {
 				}
 				else if (client->registered)
 				{
-					if (message == "/QUIT")
+					if (message == "QUIT")
 					{
-						disconnected(client, client->getSocket());
+						Commands(&client, client->getSocket(), "QUIT", server);
 						it = server->clients.erase(it);
 						break; 
 					}
-					else if (message.substr(0, 6) == "/JOIN ")
+					else if (message.substr(0, 5) == "JOIN ")
 					{
-						channel = message.substr(7);
-						if (!channel.empty())
+						// std::string removeSlash = message.substr(1);
+						if (!Commands(&client, client->getSocket(), message, server))
 						{
-							std::cout << "let's create a channel" << std::endl;
-							std::string broadcastMsg = client->getNickName() + ": " + message + "\r\n";
-							broadcastMessage(server, client->getSocket(), broadcastMsg);
-							std::cout << broadcastMsg;
-							joinChannel = true;
-						}
-						else
+							// testing in the server (for debug); better to have this function as void
 							std::cout << "enter a valid channel name" << std::endl;
+						}
 					}
-					if (joinChannel == true)
+					if (client->joinChannel)
 					{
 						std::string broadcastMsg = client->getNickName() + ": " + message + "\r\n";
-						broadcastMessage(server, client->getSocket(), broadcastMsg);
+						broadcastMessage(server, client, broadcastMsg);
 						std::cout << broadcastMsg;
 					}
 					else
 					{
 						std::string my_message = "Error(421): " + message + " UNKNOWN COMMAND\r\n";
 						send(client->getSocket(), my_message.c_str(), my_message.length(), 0);
+						std::cout << my_message;
 					}
 				}
 			}

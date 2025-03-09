@@ -37,6 +37,7 @@ class Server
         socklen_t           _addrlen;
         fd_set              _readfds;
         int                 _maxfd;
+
     public:
         std::vector<Client *> clients;
         Server(std::string name);

@@ -1,0 +1,4 @@
+(Ctrl + z) => in server (exits) but in client (it doesn't) -----> Done
+
+
+limechat -> if there is '/' infront of a command it removes it (even if there is no '/' infront of the command it still works)
