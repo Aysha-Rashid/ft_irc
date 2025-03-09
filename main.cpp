@@ -2,8 +2,12 @@
 bool running = 1;
 static void signal_handler(int signal)
 {
-  if (signal == SIGINT)
+    if (signal == SIGINT)
 		running = 0;
+    if (signal == SIGTSTP)
+        running = 0;
+    if (signal == SIGQUIT)
+        ;
 }
 
 int main(int argc, char **argv)
@@ -15,6 +19,7 @@ int main(int argc, char **argv)
         Server start("IRC");
         start.portAndPass(argv[1], argv[2]);
         signal(SIGINT, signal_handler);
+        signal(SIGTSTP, signal_handler);
         start.creatingServer(start);
 
         // Close all sockets before exiting

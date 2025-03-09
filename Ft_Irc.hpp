@@ -11,28 +11,21 @@
 #include <netinet/in.h> // (sockaddr_in) holds internet address
 #include <fcntl.h>
 #include <vector>
-#include <cstring>
-#include <csignal>
-// #include <fstream>
+#include <string>
+#include <signal.h>
+#include <sstream>
 #include <unistd.h>
 
+
+#define ERR_NONICKNAMEGIVEN std::string ("431 :No nickname given\r\n")
+#define ERR_ERRONEUSNICKNAME std::string ("432 :Erroneous Nickname\r\n")
+#define ERR_NICKNAMEINUSE std::string ("433 :The requested nickname is already in use by another client\r\n")
+#define ERR_NEEDMOREPARAMS std::string ("461 :Not enough parameters\r\n")
 extern bool running;
-class Client
-{
-    private:
-        int _socketFd;
-        std::string _username;
-    public:
-        bool authenticated;
-        bool waitingForUsername;
-        Client(){};
-        Client(int socketFd) :_socketFd(socketFd) {}
-        std::string getUserName(void) const {return (_username);};
-        void setUserName(std::string username) {_username = username;};
-        void setSocket(int socket) {this->_socketFd = socket;};
-        int getSocket(void) const {return (_socketFd);};
-    };
-    
+
+#include "Client.hpp"
+class Client;
+
 class Server
 {
     private:
@@ -44,18 +37,19 @@ class Server
         socklen_t           _addrlen;
         fd_set              _readfds;
         int                 _maxfd;
+
     public:
         std::vector<Client *> clients;
         Server(std::string name);
         ~Server();
         size_t      getPort(void) const;
         std::string getPassword(void) const;
+        std::string getServerName(void) const { return (_serverName);};
+        fd_set      &getReadfds(void) { return(_readfds);};
         int         getSocket(void) const {return (_socketFd);};
         void        portAndPass(const std::string &port, std::string password);
         void        creatingServer(Server &server);
         void        acceptConnection(void);
         void        run(void);
         void        setFds(void);
-        void        ClientCommunication(void);
-        void        broadcastMessage(int sender, const std::string &message);
 };
