@@ -12,8 +12,8 @@ public:
 	Commands&	operator=(Commands& rhs) = delete;
 	~Commands() = delete;
 
-	static void kick(const Client& client /* channel to kick from, client to kick*/);
-	static void invite(const Client& admin, const Client& invitee);
+	static void kick(const Client& admin, const Client& client /* channel to kick from*/);
+	static void invite(const Client& admin, const Client& invitee /*, channel to invite to*/);
 	static void topic(/**/);
 	static void mode(/**/);
 };
