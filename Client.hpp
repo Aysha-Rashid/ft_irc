@@ -1,53 +1,59 @@
+# ifndef CLIENT_HPP
+# define CLIENT_HPP
+# include "Ft_Irc.hpp"
+# include <sys/socket.h>
+# include <string>
 
-#pragma once
-#include "Ft_Irc.hpp"
+enum    clientState
+{   
+    UNAUTHENTICTED,
+    AUTHENTICTED,
+    REGISTERED,
+    DISCONNECTED,
+};  
 
-class Server;
-class Client
+class Client    
 {
-    private:
-        int _socketFd;
-        std::string _username;
-        std::string _nickName;
-        std::string _realName;
-        std::string inputBuffer;
-        std::string _channel;
-        bool authenticated;
-        bool waitingForUsername;
-        bool waitingForNickName;
-        bool registered;
-        bool joinChannel;
-        bool admin; //added this, for admin check
-        int out;
-    public:
-        Client()
-        {
-            this->authenticated = false;
-            this->waitingForNickName = false;
-            this->waitingForUsername = false;
-            this->registered = false;
-            this->joinChannel = false;
-            this->admin = false; //added to constructor
-        };
-        bool isAdmin() {return admin;} //added this, for admin check
-        Client(int socketFd) :_socketFd(socketFd) {}
-        std::string getUserName(void) const {return (this->_username);};
-        std::string getNickName(void) const {return (this->_nickName);};
-        std::string getRealName(void) const {return (this->_realName);};
-        std::string getChannel(void) const {return (this->_channel);};
-        int  getSocket(void) const {return (_socketFd);};
-        void setChannel(std::string &channel) {this->_channel = channel; admin = true;};
-        void setUserName(std::string &username) {this->_username = username;};
-        void setRealName(std::string &realName) {this->_realName = realName;};
-        void setNickName(std::string &nickName) {this->_nickName = nickName;};
-        void setSocket(int socket) {this->_socketFd = socket;};
-        void ClientCommunication(Server *server);
-        bool isNickNameInUse(Server *server, const std::string& nickName);
-        bool isValidNickName(const std::string& nickName);
-        void broadcastMessage(Server *server, Client *curClient, const std::string &message);
-        void printClientError(int socket, std::string Errmessage);
-        int handleAuthentication(std::string message, Client **client, Server *server);
-        void disconnected(Client *&client, int socket);
-        int Commands(Client **client, int socket, std::string commands, Server *server);
-};
+private:
+    int _fd;
+    std::string _ipAddress;
+    std::string _hostname;
+    std::string _username;
+    std::string _nickname;
+    std::string _realname;
+    clientState  _state;
+    int _channelCount;
     
+    Client();  
+    Client(const Client &other);
+    Client &operator = (const Client &other);
+
+public:
+    Client(int fd,std::string &ip, std::string  &hostname);
+    ~Client();
+
+    //setters
+    void    setHostName(std::string &hostname);
+    void    setNickName(std::string &nickname);
+    void    setUserName(std::string &username);
+    void    setRealName(std::string &realname);
+    void    setState(clientState state);
+
+    //getters
+    int getFd(void) const;
+    std::string getHostName(void)   const;
+    std::string getUserName(void)   const;
+    std::string getRealName(void)   const;
+    std::string getNickName(void)   const;
+    std::string getIpAddress(void) const;
+    clientState getState(void)  const;
+    int getChannelCount(void)   const;
+
+    //member    functions
+    void    write(const   std::string msg)    const;
+    void incrementChannelCount(void);
+    void decrementChannelCount(void);
+
+};
+
+# endif
