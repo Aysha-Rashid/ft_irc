@@ -2,6 +2,8 @@
 #ifndef	COMMANDS_H
 #define COMMANDS_H
 
+#include "Client.hpp"
+
 class Commands
 {
 public:
@@ -10,8 +12,8 @@ public:
 	Commands&	operator=(Commands& rhs) = delete;
 	~Commands() = delete;
 
-	static void kick(/*Client& client*/);
-	static void invite(/**/);
+	static void kick(const Client& client /* channel to kick from, client to kick*/);
+	static void invite(const Client& admin, const Client& invitee);
 	static void topic(/**/);
 	static void mode(/**/);
 };

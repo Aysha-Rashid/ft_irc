@@ -1,3 +1,4 @@
+
 #pragma once
 #include "Ft_Irc.hpp"
 
@@ -16,6 +17,7 @@ class Client
         bool waitingForNickName;
         bool registered;
         bool joinChannel;
+        bool admin; //added this, for admin check
         int out;
     public:
         Client()
@@ -25,14 +27,16 @@ class Client
             this->waitingForUsername = false;
             this->registered = false;
             this->joinChannel = false;
+            this->admin = false; //added to constructor
         };
+        bool isAdmin() {return admin;} //added this, for admin check
         Client(int socketFd) :_socketFd(socketFd) {}
         std::string getUserName(void) const {return (this->_username);};
         std::string getNickName(void) const {return (this->_nickName);};
         std::string getRealName(void) const {return (this->_realName);};
         std::string getChannel(void) const {return (this->_channel);};
         int  getSocket(void) const {return (_socketFd);};
-        void setChannel(std::string &channel) {this->_channel = channel;};
+        void setChannel(std::string &channel) {this->_channel = channel; admin = true;};
         void setUserName(std::string &username) {this->_username = username;};
         void setRealName(std::string &realName) {this->_realName = realName;};
         void setNickName(std::string &nickName) {this->_nickName = nickName;};
