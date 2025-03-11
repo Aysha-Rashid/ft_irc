@@ -37,6 +37,7 @@ class Server
         socklen_t           _addrlen;
         fd_set              _readfds;
         int                 _maxfd;
+        int                 out;
 
     public:
         std::vector<Client *> clients;
@@ -52,4 +53,8 @@ class Server
         void        acceptConnection(void);
         void        run(void);
         void        setFds(void);
+        void        ClientCommunication(void);
+        int         Commands(Client **client, int socket, std::string commands);
+        void        disconnected(Client *&client, int socket);
+        int         handleAuthentication(std::string message, Client **client);
 };
