@@ -2,14 +2,13 @@
 
 Client::Client() {}
 
-Client::Client(int fd,std::string &ip, std::string  &hostname) 
-    :_fd(fd), _ipAddress(ip),_hostname(hostname),_channelCount(0),_state(UNAUTHENTICTED) {}
+Client::Client(int fd,std::string &ip) 
+    :_fd(fd), _ipAddress(ip),_channelCount(0),_state(UNAUTHENTICTED) {}
 
 Client::Client(const Client &other)
 {
         _fd = other._fd;
         _ipAddress = other._ipAddress;
-        _hostname = other._hostname;
         _nickname = other._nickname;
         _username = other._username;
         _realname = other._realname;
@@ -23,7 +22,6 @@ Client& Client::operator=(const Client &other)
     {
         _fd = other._fd;
         _ipAddress = other._ipAddress;
-        _hostname = other._hostname;
         _nickname = other._nickname;
         _username = other._username;
         _realname = other._realname;
@@ -36,14 +34,9 @@ Client& Client::operator=(const Client &other)
 Client::~Client() {}
 
 //getters
-int Client::getFd(void) const
+int Client::getSocketFd(void) const
 {
     return (_fd);
-}
-
-std::string Client::getHostName(void)   const
-{
-    return (_hostname);
 }
 
 std::string Client::getNickName(void)   const
@@ -77,10 +70,11 @@ clientState Client::getState(void)  const
 }
 
 //setters
-void    Client::setHostName(std::string &hostname)
+void Client::setSocketFd(int socketFd) 
 {
-    _hostname = hostname;
+    this->_fd = socketFd;
 }
+
 
 void    Client::setNickName(std::string &nickname)
 {
