@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <sstream>
 #include <unistd.h>
+# include <map>
 
 
 #define ERR_NONICKNAMEGIVEN std::string ("431 :No nickname given\r\n")
@@ -24,32 +25,8 @@
 extern bool running;
 
 #include "Client.hpp"
-class Client;
+# include "Server.hpp"
 
-class Server
-{
-    private:
-        std::string         _serverName;
-        std::string         _password;
-        size_t              _port;
-        int                 _socketFd;
-        struct sockaddr_in	_address;
-        socklen_t           _addrlen;
-        fd_set              _readfds;
-        int                 _maxfd;
-
-    public:
-        std::vector<Client *> clients;
-        Server(std::string name);
-        ~Server();
-        size_t      getPort(void) const;
-        std::string getPassword(void) const;
-        std::string getServerName(void) const { return (_serverName);};
-        fd_set      &getReadfds(void) { return(_readfds);};
-        int         getSocket(void) const {return (_socketFd);};
-        void        portAndPass(const std::string &port, std::string password);
-        void        creatingServer(Server &server);
-        void        acceptConnection(void);
-        void        run(void);
-        void        setFds(void);
-};
+/* Commands */
+void nick(Server *server, Client *client, std::string nick);
+void join(Server *server, Client *client, std::string &message);

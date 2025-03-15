@@ -6,8 +6,8 @@
 
 enum    clientState
 {   
-    UNAUTHENTICTED,
-    AUTHENTICTED,
+    UNAUTHENTICATED,
+    AUTHENTICATED,
     REGISTERED,
     DISCONNECTED,
 };  
@@ -31,6 +31,7 @@ public:
     Client &operator = (const Client &other);
     Client(int fd, std::string &ip);
     ~Client();
+    std::string inputBuffer;
 
     //setters
     void    setSocketFd(int socketFd);
