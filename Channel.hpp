@@ -16,7 +16,9 @@ private:
     size_t _userLimit;
     std::vector<Client *> _clientList;
     std::map<std::string, bool> _operators;
+    std::vector<Client *> _invitedList;
     bool _inviteOnly;
+    bool _topicPrivilege;
 
     Channel();
     Channel(const Channel &other);
@@ -32,7 +34,9 @@ public:
     std::string getChannelKey() const;
     size_t getUserLimit() const;
     std::vector<Client *> getClients() const;
+    std::vector<std::string> getNickNames() const;
     bool getInviteOnly() const;
+    bool getTopicPrivilege() const;
 
     //setters
     void setChannelKey(const std::string &key);
@@ -40,6 +44,7 @@ public:
     void setTopic(const std::string &topic);
     void setUserLimit(const size_t limit);
     void setInviteOnly(bool inviteValue);
+    void setInvited(Client *client);
 
     //member functions
     void addClient(Client *client);
@@ -47,7 +52,10 @@ public:
     void addOperator(const Client *client);
     void removeOperator(const Client *client);
     void broadcast(const std::string &message);
-    bool isOperator(const Client *client);
+    void broadcastExclude(const std::string &message, const Client *excludeClient);
+    bool isOperator(const Client *client) const;
+    bool isInvited(const Client *client);
+    bool isClientInChannel(const Client *client) const;
 
 };
 

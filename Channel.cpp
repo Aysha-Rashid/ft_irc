@@ -55,9 +55,26 @@ std::vector<Client *> Channel::getClients() const
     return(_clientList);
 }
 
+std::vector<std::string> Channel::getNickNames() const
+{
+    std::vector<std::string> nicknames;
+    std::vector<Client *>::const_iterator it = _clientList.begin();
+    while(it != _clientList.end())
+    {
+       nicknames.push_back((isOperator(*it) ? "@" : "" ) + (*it)->getNickName());
+       ++it;
+    }
+    return (nicknames);
+}
+
 bool Channel::getInviteOnly() const
 {
     return(_inviteOnly);
+}
+
+bool Channel::getTopicPrivilege() const
+{
+    return(_topicPrivilege);
 }
 
 //setters
@@ -86,6 +103,20 @@ void Channel::setInviteOnly(bool inviteValue)
     _inviteOnly = inviteValue;
 }
 
+void Channel::setInvited(Client *client)
+{
+    std::vector<Client *> :: iterator it = _invitedList.begin();
+     while (it != _invitedList.end())
+    {
+        if(*it == client)
+        {
+          return;
+        }
+        ++it;
+    }
+    _invitedList.push_back(client);
+}
+
 //member functions
 void Channel::addClient(Client *client)
 {
@@ -102,6 +133,17 @@ void Channel::removeClient(Client *client)
         if(*it == client)
         {
             _clientList.erase(it);
+            break;
+        }
+        ++it;
+        
+    }
+    it = _invitedList.begin();
+    while (it != _invitedList.end())
+    {
+        if(*it == client)
+        {
+            _invitedList.erase(it);
             break;
         }
         ++it;
@@ -132,11 +174,51 @@ void Channel::broadcast(const std::string &message)
     }
 }
 
-bool Channel::isOperator(const Client *client)
+void Channel::broadcastExclude(const std::string &message,const Client *excludeClient)
 {
-    std::map<std::string, bool> ::iterator it = _operators.find(client->getNickName());
+    std::vector<Client *>::iterator it = _clientList.begin();
+    while (it != _clientList.end())
+    {
+        if(*it != excludeClient)
+            (*it)->write(message);
+        ++it;
+    }
+}
+
+bool Channel::isOperator(const Client *client) const
+{
+    std::map<std::string, bool> ::const_iterator it = _operators.find(client->getNickName());
     if(it != _operators.end())
         return (it->second);
 
     return (false);    
+}
+
+bool Channel::isInvited(const Client *client)
+{
+    std::vector<Client *> :: iterator it = _invitedList.begin();
+     while (it != _invitedList.end())
+    {
+        if(*it == client)
+        {
+          return (true);
+        }
+        ++it;
+    }
+    return (false);
+
+}
+
+bool Channel::isClientInChannel(const Client *client) const
+{
+    std::vector<Client *>::const_iterator it = _clientList.begin();
+    while (it != _clientList.end())
+    {
+        if(*it == client)
+        {
+            return (true);
+        }
+        ++it;
+    }
+    return (false);
 }

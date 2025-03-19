@@ -3,7 +3,7 @@
 Client::Client() {}
 
 Client::Client(int fd,std::string &ip) 
-    :_fd(fd), _ipAddress(ip),_channelCount(0),_state(UNAUTHENTICTED) {}
+    :_fd(fd), _ipAddress(ip),_channelCount(0),_state(UNAUTHENTICATED) {}
 
 Client::Client(const Client &other)
 {
