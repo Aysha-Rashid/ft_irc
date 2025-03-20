@@ -22,8 +22,6 @@ private:
     std::string _realname;
     clientState  _state;
     int _channelCount;
-    
-    
 
 public:
     Client();  

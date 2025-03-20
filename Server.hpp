@@ -4,6 +4,44 @@
 # include "Ft_Irc.hpp"
 # include "Utils.hpp"
 # include "Channel.hpp"
+# include "Client.hpp"
+#include <map>
+
+#define ERR_NONICKNAMEGIVEN std::string ("431 :No nickname given\r\n")
+#define ERR_ERRONEUSNICKNAME std::string ("432 :Erroneous Nickname\r\n")
+#define ERR_NICKNAMEINUSE std::string ("433 :The requested nickname is already in use by another client\r\n")
+#define ERR_NEEDMOREPARAMS std::string ("461 :Not enough parameters\r\n")
+
+extern bool running;
+
+typedef void (*CommandHandler)(int, std::vector<std::string>&);
+
+struct Command {
+    std::string label;
+    CommandHandler handler;
+    clientState requiredAuthState;
+    Command(const std::string& lbl, CommandHandler handle, clientState Auto) : label(lbl), handler(handle), requiredAuthState(Auto) {}
+};
+
+
+void handlePass(int client_fd, std::vector<std::string>& params);
+void handleNick(int client_fd, std::vector<std::string>& params);
+void handleUser(int client_fd, std::vector<std::string>& params);
+void handleJoin(int client_fd, std::vector<std::string>& param);
+void handlePart(int client_fd, std::vector<std::string>& param);
+void handleInvite(int client_fd, std::vector<std::string>& param);
+void handleMode(int client_fd, std::vector<std::string>& param);
+void handlePing(int client_fd, std::vector<std::string>& param);
+void handleQuit(int client_fd, std::vector<std::string>& param);
+void handleWho(int client_fd, std::vector<std::string>& param);
+void handleKick(int client_fd, std::vector<std::string>& param);
+void handlePrivMsg(int client_fd, std::vector<std::string>& param);
+void handleCap(int client_fd, std::vector<std::string>& param);
+void handlePong(int client_fd, std::vector<std::string>& param);
+
+// void handlePass(int client_fd, std::vector<std::string> param);
+// void handleNick(int client_fd, std::vector<std::string> param);
+// void handleUser(int client_fd, std::vector<std::string> param);
 
 class Server
 {
@@ -20,6 +58,8 @@ class Server
 
     public:
         std::vector<Client *> clients;
+        std::vector<Command> commands;  // ✅ Replace `map` with `vector`
+        // std::map<std::string, Command> commands;
         std::map<std::string, Channel *> channels;
         Server(std::string name);
         ~Server();

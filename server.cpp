@@ -1,5 +1,69 @@
 #include "Ft_Irc.hpp"
-Server::Server(std::string name) : _serverName(name) {}
+# include "Server.hpp"
+
+Server::Server(std::string name) : _serverName(name) {
+	commands.push_back(Command("PASS", handlePass, UNAUTHENTICATED));
+	commands.push_back(Command("NICK", handleNick, AUTHENTICATED));
+	commands.push_back(Command("USER", handleUser, AUTHENTICATED));
+	commands.push_back(Command("JOIN", handleJoin, REGISTERED));
+	commands.push_back(Command("PART", handlePart, REGISTERED));
+	commands.push_back(Command("INVITE", handleInvite, REGISTERED));
+	commands.push_back(Command("MODE", handleMode, REGISTERED));
+	commands.push_back(Command("PING", handlePing, REGISTERED));
+	commands.push_back(Command("QUIT", handleQuit, REGISTERED));
+	commands.push_back(Command("WHO", handleWho, REGISTERED));
+	commands.push_back(Command("KICK", handleKick, REGISTERED));
+	commands.push_back(Command("PRIVMSG", handlePrivMsg, REGISTERED));
+	// commands.push_back(Command("CAP", handleCap, UNAUTHENTICATED));
+	// commands.push_back(Command("PONG", handlePong, UNAUTHENTICATED));
+}
+
+// ✅ Ensure These Are Defined Before Using Them
+void handlePass(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+
+void handleNick(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+
+void handleUser(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+void handleJoin(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+void handlePart(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+void handleInvite(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+void handleMode(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+void handlePing(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+void handleQuit(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+void handleWho(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+void handleKick(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+void handlePrivMsg(int client_fd, std::vector<std::string>& params) {
+    // Function logic
+}
+// void handleCap(int client_fd, std::vector<std::string>& params) {
+//     // Function logic
+// }
+// void handlePong(int client_fd, std::vector<std::string>& params) {
+//     // Function logic
+// }
+
 Server::~Server()
 {
     std::string quitMsg = "server QUIT :Server shutting down\n";
@@ -7,7 +71,7 @@ Server::~Server()
     if (!clients.empty())
     {
         for (size_t i = 0; i < clients.size(); i++) {
-            int clientSocket = clients[i]->getSocket();
+            int clientSocket = clients[i]->getSocketFd();
             
             if (clientSocket > 0) {
                 send(clientSocket, quitMsg.c_str(), quitMsg.length(), 0);
@@ -62,9 +126,9 @@ void Server::setFds() {
 
     for (std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
         Client* client = *it;
-        FD_SET(client->getSocket(), &_readfds);
-        if (client->getSocket() > _maxfd) {
-            _maxfd = client->getSocket();
+        FD_SET(client->getSocketFd(), &_readfds);
+        if (client->getSocketFd() > _maxfd) {
+            _maxfd = client->getSocketFd();
         }
     }
 }
@@ -81,19 +145,19 @@ void Server::acceptConnection(void)
 {
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
-    int newClient = accept(_socketFd, (struct sockaddr*)&client_addr, &client_len);
-    if (newClient >= 0){
-        std::cout << "New client attempting to connect: " << newClient << std::endl;
-        fcntl(newClient, F_SETFL, O_NONBLOCK);
-        Client *currentClient = new Client();
-        currentClient->setSocket(newClient);
+    int newClient_fd = accept(_socketFd, (struct sockaddr*)&client_addr, &client_len);
+    if (newClient_fd >= 0){
+        std::cout << "New client attempting to connect: " << newClient_fd << std::endl;
+        fcntl(newClient_fd, F_SETFL, O_NONBLOCK);
+		std::string inet_addr = inet_ntoa(client_addr.sin_addr);
+		Client *currentClient = new Client(newClient_fd, inet_addr);
+   		currentClient->setSocketFd(newClient_fd);
         clients.push_back(currentClient);
     }
 }
 
 void Server::run(void)
 {
-    Client startClient;
     while (running)
     {
         this->setFds();
@@ -104,7 +168,7 @@ void Server::run(void)
         }
         if (FD_ISSET(_socketFd, &_readfds))
             acceptConnection();
-        startClient.ClientCommunication(this);
+        ClientCommunication();
     }
 }
 
@@ -126,4 +190,159 @@ void    Server::creatingServer(Server &server)
     std::cout << "Server started and listening for incoming connections on port " << _port << std::endl;
     // waiting for client connection
     server.run();
+}
+
+int Server::handleAuthentication(std::string message, Client **client) {
+	if (((*client)->getState() == UNAUTHENTICATED)) {
+		if (message.substr(0, 5) == "PASS ") {
+			if (message.substr(5) == this->getPassword()) {
+				(*client)->setState(AUTHENTICATED);
+			} else {
+				(*client)->write("Incorrect Password\r\n");
+				return 1;
+			}
+		}
+	}
+	if ((*client)->getState() == AUTHENTICATED) {
+		if (message.substr(0, 5) == "NICK ") {
+			std::string nickname = message.substr(5);
+			nick(this, *client, nickname);
+		}
+		if (message.substr(0, 5) == "USER ") {
+			std::stringstream ss(message.substr(5));
+			std::string username, realName, permission;
+			char mode;
+			ss >> username >> mode >> permission >> realName;
+			if (ss.fail() || username.empty() || permission.empty() || realName.empty())
+				(*client)->write(ERR_NEEDMOREPARAMS);
+			else {
+				if (mode > '8' && mode < '0')  
+					(*client)->write("Invalid arguments\r\n");
+				else {
+					(*client)->setUserName(username);
+					(*client)->setRealName(realName);
+					//(*client)->setWaitingForUsername(true);
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+void Server::disconnected(Client *&client, int socket) {
+	if (client != nullptr) {
+		if (!client->getNickName().empty())
+			std::cout << client->getNickName() << " disconnected." << std::endl;
+		close(client->getSocketFd());
+		delete client;
+		client = nullptr; // To prevent further access to the deleted pointer
+		out = true;
+	}
+}
+
+int Server::Commands(Client **client, int socket, std::string commands)
+{
+	if (commands.substr(0, 5) == "JOIN ")
+	    {
+		join(this, *client, commands);
+		}
+	else if (commands.substr(0, 5) == "QUIT")
+		disconnected((*client), (*client)->getSocketFd());
+	else
+		return 0;
+	return (1);
+}
+
+void Server::ClientCommunication() {
+	out = 0;
+	for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end();) {
+		Client* client = *it;
+		if (FD_ISSET(client->getSocketFd(), &getReadfds())) {
+			char buffer[1024];
+			size_t bytesReceived = recv(client->getSocketFd(), buffer, sizeof(buffer) - 1, 0);
+			if (bytesReceived == 0) {
+				Commands(&client, client->getSocketFd(), "QUIT");
+				it = clients.erase(it);
+				continue;
+			}
+			if (bytesReceived < 0) {
+				perror("recv error");
+				continue;
+			}
+			buffer[bytesReceived] = '\0';
+			std::string receivedData(buffer);
+			client->inputBuffer += receivedData;
+			size_t newlinePos;
+			while ((newlinePos = client->inputBuffer.find('\n')) != std::string::npos) // to handle the ctrl+d buffer
+			{
+				std::string message = client->inputBuffer.substr(0, newlinePos);
+				if (message[0] == '/')
+					message = message.substr(1);
+				client->inputBuffer.erase(0, newlinePos + 1); // Remove processed part
+				if (!message.empty() && message.back() == '\r')
+					message.pop_back();
+				if (message.empty()) continue;
+				if (handleAuthentication(message, &client))
+				{
+					Commands(&client, client->getSocketFd(), "QUIT");
+					it = clients.erase(it);
+					break;
+				}
+				if (client->getState() == AUTHENTICATED && !client->getNickName().empty() && !client->getUserName().empty()) {
+					client->setState(REGISTERED);
+					std::string welcomeMsg = ":" + getServerName() + " 001 " + client->getNickName() + " :Welcome to the IRC server, " + client->getNickName() + "\r\n";
+					// server 001 is a numeric reply code used by the IRC server to indicate that the client has successfully connected.
+					send(client->getSocketFd(), welcomeMsg.c_str(), welcomeMsg.length(), 0);
+					std::cout << welcomeMsg;
+				}
+				else if (client->getState() == REGISTERED)
+				{
+					if (message == "QUIT")
+					{
+						Commands(&client, client->getSocketFd(), "QUIT");
+						it = clients.erase(it);
+						break; 
+					}
+					else if (message.substr(0, 5) == "JOIN ")
+						Commands(&client, client->getSocketFd(), message);
+				// 	if (client->getJoinChannel())
+				// 	{
+				// 		std::string broadcastMsg = client->getNickName() + ": " + message + "\r\n";
+				// 		client->broadcastMessage(this, client, broadcastMsg);
+				// 		std::cout << broadcastMsg;
+				// }
+					else
+					{
+						std::string my_message = "Error(421): " + message + " UNKNOWN COMMAND\r\n";
+						send(client->getSocketFd(), my_message.c_str(), my_message.length(), 0);
+						std::cout << my_message;
+					}
+				}
+			}
+			if (out == 1)
+				continue;
+		}
+		++it;
+	}
+}
+
+void Server::registerChannel(Channel *channel)
+{
+	channels[channel->getName()] = channel;
+}
+
+Channel * Server::getChannel(std::string &name)
+{
+	std::map<std::string, Channel *> :: iterator it = channels.find(name);
+	if(it != channels.end())
+		return (it->second);
+	return NULL;		
+}
+
+void Server::deleteChannel(Channel *channel)
+{
+	std::string channelName = channel->getName();
+
+	delete channel;
+	channels.erase(channelName);
 }
