@@ -24,14 +24,15 @@ JOIN #foo,#bar                  ; join channels #foo and #bar.
 
 */
 
-void join(Server *server, Client *client, std::string &message)
+void join(Server *server, Client *client, std::vector<std::string> &channels)
 {
-   if(message.empty())
+  std::cout << "comes here \n";
+   if(channels.size() == 0)
      {
         client->write(":ft_irc.server 461 " + client->getNickName() + "JOIN :Not enough parameters \r\n");
         return;
      }
-     std::vector<std::string> channels = split(message, ' ');
+    //  std::vector<std::string> channels = split(message, ' ');
      std::string name = channels[1];
      
      Channel *channel = server->getChannel(name);

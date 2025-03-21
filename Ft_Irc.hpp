@@ -29,4 +29,4 @@ extern bool running;
 
 /* Commands */
 void nick(Server *server, Client *client, std::string nick);
-void join(Server *server, Client *client, std::string &message);
+void join(Server *server, Client *client, std::vector<std::string> &message);
