@@ -18,7 +18,7 @@ extern bool running;
 // void handleNick(int client_fd, std::vector<std::string> param);
 // void handleUser(int client_fd, std::vector<std::string> param);
 class Server;
-typedef void (*CommandHandler)(Server *,int, std::vector<std::string>&);
+typedef void (*CommandHandler)(Server *,Client *, std::vector<std::string>&);
 
 struct Command {
     std::string label;
@@ -28,20 +28,20 @@ struct Command {
 };
 
 
-void handlePass(Server *server, int client_fd, std::vector<std::string>& params);
-void handleNick(Server *server, int client_fd, std::vector<std::string>& params);
-void handleUser(Server *server, int client_fd, std::vector<std::string>& params);
-void handleJoin(Server *server, int client_fd, std::vector<std::string>& param);
-void handlePart(Server *server, int client_fd, std::vector<std::string>& param);
-void handleInvite(Server *server, int client_fd, std::vector<std::string>& param);
-void handleMode(Server *server, int client_fd, std::vector<std::string>& param);
-void handlePing(Server *server, int client_fd, std::vector<std::string>& param);
-void handleQuit(Server *server, int client_fd, std::vector<std::string>& param);
-void handleWho(Server *server, int client_fd, std::vector<std::string>& param);
-void handleKick(Server *server, int client_fd, std::vector<std::string>& param);
-void handlePrivMsg(Server *server, int client_fd, std::vector<std::string>& param);
-void handleCap(Server *server, int client_fd, std::vector<std::string>& param);
-void handlePong(Server *server, int client_fd, std::vector<std::string>& param);
+void handlePass(Server *server, Client *client, std::vector<std::string>& params);
+void handleNick(Server *server, Client *client, std::vector<std::string>& params);
+void handleUser(Server *server, Client *client, std::vector<std::string>& params);
+void handleJoin(Server *server, Client *client, std::vector<std::string>& param);
+void handlePart(Server *server, Client *client, std::vector<std::string>& param);
+void handleInvite(Server *server, Client *client, std::vector<std::string>& param);
+void handleMode(Server *server, Client *client, std::vector<std::string>& param);
+void handlePing(Server *server, Client *client, std::vector<std::string>& param);
+void handleQuit(Server *server, Client *client, std::vector<std::string>& param);
+void handleWho(Server *server, Client *client, std::vector<std::string>& param);
+void handleKick(Server *server, Client *client, std::vector<std::string>& param);
+void handlePrivMsg(Server *server, Client *client, std::vector<std::string>& param);
+void handleCap(Server *server, Client *client, std::vector<std::string>& param);
+void handlePong(Server *server, Client *client, std::vector<std::string>& param);
 
 class Server
 {

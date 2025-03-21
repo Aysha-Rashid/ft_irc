@@ -20,51 +20,51 @@ Server::Server(std::string name) : _serverName(name) {
 
 
 // ✅ Ensure These Are Defined Before Using Them
-void handlePass(Server *server, int client_fd, std::vector<std::string>& params) {
+void handlePass(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
 
-void handleNick(Server *server, int client_fd, std::vector<std::string>& params) {
+void handleNick(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
 
-void handleUser(Server *server, int client_fd, std::vector<std::string>& params) {
+void handleUser(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handleJoin(Server *server, int client_fd, std::vector<std::string>& params) {
+void handleJoin(Server *server, Client *client, std::vector<std::string>& params) {
 
 	// Find the client using client_fd
-	Client *client = server->getClientByFd(client_fd);
+	// Client *client = server->getClientByFd(client_fd);
 	if (!client) {
-		std::cerr << "Error: Client not found for fd " << client_fd << std::endl;
+		std::cerr << "Error: Client not found for fd " << client->getNickName() << std::endl;
 		return;
 	}
 
 	// Call the join function
 	join(server, client, params);
 }
-void handlePart(Server *server, int client_fd, std::vector<std::string>& params) {
+void handlePart(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handleInvite(Server *server, int client_fd, std::vector<std::string>& params) {
+void handleInvite(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handleMode(Server *server, int client_fd, std::vector<std::string>& params) {
+void handleMode(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handlePing(Server *server, int client_fd, std::vector<std::string>& params) {
+void handlePing(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handleQuit(Server *server, int client_fd, std::vector<std::string>& params) {
+void handleQuit(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handleWho(Server *server, int client_fd, std::vector<std::string>& params) {
+void handleWho(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handleKick(Server *server, int client_fd, std::vector<std::string>& params) {
+void handleKick(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handlePrivMsg(Server *server, int client_fd, std::vector<std::string>& params) {
+void handlePrivMsg(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
 // void handleCap(Server *server, int client_fd, std::vector<std::string>& params) {
@@ -105,13 +105,13 @@ std::string Server::getPassword(void) const
 	return (this->_password);
 }
 
-Client* Server::getClientByFd(int client_fd) {
-	for (size_t i = 0; i < clients.size(); i++) {
-		if (clients[i]->getSocketFd() == client_fd)
-			return clients[i];
-	}
-	return NULL;
-}
+// Client* Server::getClientByFd(int client_fd) {
+// 	for (size_t i = 0; i < clients.size(); i++) {
+// 		if (clients[i]->getSocketFd() == client_fd)
+// 			return clients[i];
+// 	}
+// 	return NULL;
+// }
 
 void Server::portAndPass(const std::string& port, std::string password)
 {
@@ -260,28 +260,19 @@ void Server::disconnected(Client *&client, int socket) {
 
 int Server::Commands(Client **client, int socket, std::string commandStr)
 {
-	// Command label;
-	// std::vector<std::string> channel = split(commands.substr(5), ' ');
-	// if (commands.substr(0, 5) == "JOIN ")
-	// 	join(this, *client, channel);
-	// else if (commands.substr(0, 5) == "QUIT")
-	// 	disconnected((*client), (*client)->getSocketFd());
-	// else
-	// 	return 0;
-	// return (1);
 	for (size_t i = 0; i < commands.size(); i++) {
-		// Check if the command label matches the beginning of the command string
+		// if (commandStr.fi)
 		if (commandStr.substr(0, commands[i].label.size()) == commands[i].label) {
-			// Split the command string into parameters (excluding the command label)
 			std::vector<std::string> params = split(commandStr.substr(commands[i].label.size() + 1), ' ');
-			if ((*client)->getState() >= commands[i].requiredAuthState) {
+			if ((*client)->getState() >= commands[i].requiredAuthState)
+			{
 				if (commandStr.substr(0, 5) == "JOIN ")
-					commands[i].handler(this, socket, params);
-				return 1;
+					commands[i].handler(this, *client, params);
+				return 0;
 			}
 		}
 	}
-	return 0;
+	return 1;
 }
 
 void Server::ClientCommunication() {

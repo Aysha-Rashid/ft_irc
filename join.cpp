@@ -26,7 +26,8 @@ JOIN #foo,#bar                  ; join channels #foo and #bar.
 
 void join(Server *server, Client *client, std::vector<std::string> &channels)
 {
-  std::cout << "comes here \n";
+  // std::cout << "comes here \n";
+  // std::cout << channels[1] << "\n";
    if(channels.size() == 0)
      {
         client->write(":ft_irc.server 461 " + client->getNickName() + "JOIN :Not enough parameters \r\n");
