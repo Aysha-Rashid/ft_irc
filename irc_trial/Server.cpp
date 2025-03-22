@@ -27,14 +27,14 @@ void handlePass(Server *server, Client *client, std::vector<std::string>& params
 		client->write(ERR_NEEDMOREPARAMS);
 		return;
 	}
-	if(client->getState() == AUTHENTICATED)
+	if(client->getState() == AUTHENTICATED || client->getState() == REGISTERED)
 	{
-		client->write("You cannot reregister. \r\n");
+		client->write(ERR_ALREADYREGISTERED);
 		return;
 	}
 	if(params[0] != server->getPassword())
 	{
-		client->write("Incorrect Password.\r\n");
+		client->write(ERR_PASSWDMISMATCH);
 		return;
 	}
 	client->setState(AUTHENTICATED);
@@ -45,7 +45,7 @@ void handleUser(Server *server, Client *client, std::vector<std::string>& params
 	(void) server;
 	if(client->getState() == REGISTERED)
 	{
-		client->write("You cannot reregister. \r\n");
+		client->write(ERR_ALREADYREGISTERED);
 		return;
 	}
 	if(params.empty() || params.size() < 4)
@@ -54,7 +54,11 @@ void handleUser(Server *server, Client *client, std::vector<std::string>& params
 		return;
 	}
 
-// add the rest
+	client->setUserName(params[0]);
+	client->setRealName(params[3]);
+	if(!client->getNickName().empty())
+		client->setState(REGISTERED);
+	client->write("001 " + RPL_WELCOME + client->getNickName() +"\r\n");	
 }
 
 void handlePart(Server *server, Client *client, std::vector<std::string>& params) {
