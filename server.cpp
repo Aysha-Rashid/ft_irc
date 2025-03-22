@@ -1,16 +1,17 @@
 #include "Ft_Irc.hpp"
 # include "Server.hpp"
 
+// bool out = false;
 Server::Server(std::string name) : _serverName(name) {
 	commands.push_back(Command("PASS", handlePass, UNAUTHENTICATED));
-	commands.push_back(Command("NICK", handleNick, AUTHENTICATED));
-	commands.push_back(Command("USER", handleUser, AUTHENTICATED));
-	commands.push_back(Command("JOIN", handleJoin, REGISTERED));
+	commands.push_back(Command("NICK", handleNick, AUTHENTICATED)); // done
+	commands.push_back(Command("USER", handleUser, AUTHENTICATED)); // done
+	commands.push_back(Command("JOIN", handleJoin, REGISTERED)); // done but the real implementation is left
+	commands.push_back(Command("QUIT", handleQuit, UNAUTHENTICATED)); // done
 	commands.push_back(Command("PART", handlePart, REGISTERED));
 	commands.push_back(Command("INVITE", handleInvite, REGISTERED));
 	commands.push_back(Command("MODE", handleMode, REGISTERED));
 	commands.push_back(Command("PING", handlePing, REGISTERED));
-	commands.push_back(Command("QUIT", handleQuit, REGISTERED));
 	commands.push_back(Command("WHO", handleWho, REGISTERED));
 	commands.push_back(Command("KICK", handleKick, REGISTERED));
 	commands.push_back(Command("PRIVMSG", handlePrivMsg, REGISTERED));
@@ -21,28 +22,42 @@ Server::Server(std::string name) : _serverName(name) {
 
 // ✅ Ensure These Are Defined Before Using Them
 void handlePass(Server *server, Client *client, std::vector<std::string>& params) {
-	// Function logic
-}
-
-void handleNick(Server *server, Client *client, std::vector<std::string>& params) {
-	// Function logic
+	if (client->getState() == UNAUTHENTICATED) {
+        if (params.size() < 2) {
+            client->write("Error: Password required\r\n");
+            return;
+        }
+        if (params[1] == server->getPassword()) {
+            client->setState(AUTHENTICATED);
+            client->write("Password accepted. You are now authenticated.\r\n");
+        } else {
+            client->write("Incorrect Password\r\n");
+            server->Commands(client, client->getSocketFd(), "QUIT");
+        }
+    } else
+        client->write("You are already authenticated.\r\n");
 }
 
 void handleUser(Server *server, Client *client, std::vector<std::string>& params) {
-	// Function logic
-}
-void handleJoin(Server *server, Client *client, std::vector<std::string>& params) {
-
-	// Find the client using client_fd
-	// Client *client = server->getClientByFd(client_fd);
-	if (!client) {
-		std::cerr << "Error: Client not found for fd " << client->getNickName() << std::endl;
-		return;
+	if (client->getState() == AUTHENTICATED && !client->getNickName().empty()) {
+		std::string username, realName, mode, permission;
+		username = params[1];
+		realName = params[2];
+		mode = params[3];
+		permission = params[4];
+		if (mode.size() > 1 || mode.empty() || username.empty() || permission.empty() || realName.empty())
+			client->write(ERR_NEEDMOREPARAMS);
+		else {
+			if (isdigit(*mode.c_str()) < 0 || isdigit(*mode.c_str()) > 8)  
+				client->write("Invalid arguments\r\n");
+			else {
+				client->setUserName(username);
+				client->setRealName(realName);
+			}
+		}
 	}
-
-	// Call the join function
-	join(server, client, params);
 }
+
 void handlePart(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
@@ -55,9 +70,22 @@ void handleMode(Server *server, Client *client, std::vector<std::string>& params
 void handlePing(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
+// void handleQuit(Server *server, Client *client, std::vector<std::string>& params) {
+// 	// Function logic
+// }
+
 void handleQuit(Server *server, Client *client, std::vector<std::string>& params) {
-	// Function logic
+    (void) server;
+    (void) params;
+    if (client != nullptr)
+	{
+        if (!client->getNickName().empty())
+            std::cout << client->getNickName() << " disconnected." << std::endl;
+        close(client->getSocketFd());
+        delete client;
+    }
 }
+
 void handleWho(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
@@ -87,7 +115,6 @@ Server::~Server()
 				send(clientSocket, quitMsg.c_str(), quitMsg.length(), 0);
 				close(clientSocket);
 			}
-
 			delete clients[i];
 		}
 	}
@@ -104,14 +131,6 @@ std::string Server::getPassword(void) const
 {
 	return (this->_password);
 }
-
-// Client* Server::getClientByFd(int client_fd) {
-// 	for (size_t i = 0; i < clients.size(); i++) {
-// 		if (clients[i]->getSocketFd() == client_fd)
-// 			return clients[i];
-// 	}
-// 	return NULL;
-// }
 
 void Server::portAndPass(const std::string& port, std::string password)
 {
@@ -195,7 +214,6 @@ void    Server::creatingServer(Server &server)
 	int	sockOpt = 1;
 
 	_address.sin_family = AF_INET;
-	// INADDR_ANY is a special IP address that tells the socket to listen on all available network interfaces.
 	_address.sin_addr.s_addr = INADDR_ANY;
 	_address.sin_port = htons(_port);
 	_addrlen = sizeof(_address);
@@ -206,84 +224,40 @@ void    Server::creatingServer(Server &server)
 	checkError(bind(_socketFd, (struct sockaddr *)&_address, _addrlen), "bind failed","Error setting socket flags"); // binding to the socket
 	checkError(listen(_socketFd, 500), "listen", "Error: Failed to start listening for incoming connections"); // letting all the clients know that its available for connection
 	std::cout << "Server started and listening for incoming connections on port " << _port << std::endl;
-	// waiting for client connection
 	server.run();
 }
 
-int Server::handleAuthentication(std::string message, Client **client) {
-	if (((*client)->getState() == UNAUTHENTICATED)) {
-		if (message.substr(0, 5) == "PASS ") {
-			if (message.substr(5) == this->getPassword()) {
-				(*client)->setState(AUTHENTICATED);
-			} else {
-				(*client)->write("Incorrect Password\r\n");
-				return 1;
-			}
-		}
-	}
-	if ((*client)->getState() == AUTHENTICATED) {
-		if (message.substr(0, 5) == "NICK ") {
-			std::string nickname = message.substr(5);
-			nick(this, *client, nickname);
-		}
-		if (message.substr(0, 5) == "USER ") {
-			std::stringstream ss(message.substr(5));
-			std::string username, realName, permission;
-			char mode;
-			ss >> username >> mode >> permission >> realName;
-			if (ss.fail() || username.empty() || permission.empty() || realName.empty())
-				(*client)->write(ERR_NEEDMOREPARAMS);
-			else {
-				if (mode > '8' && mode < '0')  
-					(*client)->write("Invalid arguments\r\n");
-				else {
-					(*client)->setUserName(username);
-					(*client)->setRealName(realName);
-					//(*client)->setWaitingForUsername(true);
-				}
-			}
-		}
-	}
-	return 0;
-}
-
-void Server::disconnected(Client *&client, int socket) {
-	if (client != nullptr) {
-		if (!client->getNickName().empty())
-			std::cout << client->getNickName() << " disconnected." << std::endl;
-		close(client->getSocketFd());
-		delete client;
-		client = nullptr; // To prevent further access to the deleted pointer
-		out = true;
-	}
-}
-
-int Server::Commands(Client **client, int socket, std::string commandStr)
+int Server::Commands(Client *client, int socket, std::string commandStr)
 {
 	for (size_t i = 0; i < commands.size(); i++) {
-		// if (commandStr.fi)
 		if (commandStr.substr(0, commands[i].label.size()) == commands[i].label) {
-			std::vector<std::string> params = split(commandStr.substr(commands[i].label.size() + 1), ' ');
-			if ((*client)->getState() >= commands[i].requiredAuthState)
+			std::vector<std::string> params = split(commandStr.substr(commands[i].label.size()), ' ');
+			if (client->getState() >= commands[i].requiredAuthState)
 			{
-				if (commandStr.substr(0, 5) == "JOIN ")
-					commands[i].handler(this, *client, params);
+				commands[i].handler(this, client, params);
 				return 0;
 			}
 		}
 	}
+	if (client->getState() == REGISTERED)
+	{
+		std::string my_message = "Error(421): " + commandStr + " UNKNOWN COMMAND\r\n";
+		send(client->getSocketFd(), my_message.c_str(), my_message.length(), 0);
+		std::cout << my_message;
+	}
 	return 1;
 }
 
+
 void Server::ClientCommunication() {
-	out = 0;
 	for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end();) {
+	out = false;
 		Client* client = *it;
 		if (FD_ISSET(client->getSocketFd(), &getReadfds())) {
 			char buffer[1024];
 			size_t bytesReceived = recv(client->getSocketFd(), buffer, sizeof(buffer) - 1, 0);
-			if (bytesReceived == 0) {
-				Commands(&client, client->getSocketFd(), "QUIT");
+			if (bytesReceived == 0 && out == false) {
+				Commands(client, client->getSocketFd(), "QUIT");
 				it = clients.erase(it);
 				continue;
 			}
@@ -295,7 +269,7 @@ void Server::ClientCommunication() {
 			std::string receivedData(buffer);
 			client->inputBuffer += receivedData;
 			size_t newlinePos;
-			while ((newlinePos = client->inputBuffer.find('\n')) != std::string::npos) // to handle the ctrl+d buffer
+			while ((newlinePos = client->inputBuffer.find('\n')) != std::string::npos && running) // to handle the ctrl+d buffer
 			{
 				std::string message = client->inputBuffer.substr(0, newlinePos);
 				if (message[0] == '/')
@@ -304,11 +278,18 @@ void Server::ClientCommunication() {
 				if (!message.empty() && message.back() == '\r')
 					message.pop_back();
 				if (message.empty()) continue;
-				if (handleAuthentication(message, &client))
+				if (client->getState() <= AUTHENTICATED)
 				{
-					Commands(&client, client->getSocketFd(), "QUIT");
-					it = clients.erase(it);
-					break;
+					Commands(client, client->getSocketFd(), message);
+					if (client->getState() == UNAUTHENTICATED && message.substr(0, 5) == "PASS ")
+					{
+						std::cout << "Authentication failed for client " << client->getSocketFd() << std::endl;
+						std::string errorMsg = "Authentication failed. Disconnecting...\r\n";
+						send(client->getSocketFd(), errorMsg.c_str(), errorMsg.length(), 0);
+						it = clients.erase(it);
+						out = true;
+						break;
+					}
 				}
 				if (client->getState() == AUTHENTICATED && !client->getNickName().empty() && !client->getUserName().empty()) {
 					client->setState(REGISTERED);
@@ -321,27 +302,22 @@ void Server::ClientCommunication() {
 				{
 					if (message == "QUIT")
 					{
-						Commands(&client, client->getSocketFd(), "QUIT");
+						Commands(client, client->getSocketFd(), "QUIT");
 						it = clients.erase(it);
+						out = true;
 						break; 
 					}
-					else if (message.substr(0, 5) == "JOIN ")
-						Commands(&client, client->getSocketFd(), message);
+					else
+						Commands(client, client->getSocketFd(), message);
 				// 	if (client->getJoinChannel())
 				// 	{
 				// 		std::string broadcastMsg = client->getNickName() + ": " + message + "\r\n";
 				// 		client->broadcastMessage(this, client, broadcastMsg);
 				// 		std::cout << broadcastMsg;
 				// }
-					else
-					{
-						std::string my_message = "Error(421): " + message + " UNKNOWN COMMAND\r\n";
-						send(client->getSocketFd(), my_message.c_str(), my_message.length(), 0);
-						std::cout << my_message;
-					}
 				}
 			}
-			if (out == 1)
+			if (out == true)
 				continue;
 		}
 		++it;

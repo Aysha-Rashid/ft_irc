@@ -3,7 +3,8 @@
 
 # include <sys/socket.h>
 # include <string>
-
+#include <unistd.h>
+#include <iostream>
 enum    clientState
 {   
     UNAUTHENTICATED,

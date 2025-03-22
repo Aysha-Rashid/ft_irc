@@ -15,41 +15,39 @@ JOIN #foobar                    ; join channel #foobar.
 JOIN &foo fubar                 ; join channel &foo using key "fubar".
 
 JOIN #foo,&bar fubar            ; join channel #foo using key "fubar"
-                                  and &bar using no key.
+																	and &bar using no key.
 
 JOIN #foo,#bar fubar,foobar     ; join channel #foo using key "fubar".
-                                  and channel #bar using key "foobar".
+																	and channel #bar using key "foobar".
 
 JOIN #foo,#bar                  ; join channels #foo and #bar.
 
 */
 
-void join(Server *server, Client *client, std::vector<std::string> &channels)
+void handleJoin(Server *server, Client *client, std::vector<std::string> &channels)
 {
-  // std::cout << "comes here \n";
-  // std::cout << channels[1] << "\n";
-   if(channels.size() == 0)
-     {
-        client->write(":ft_irc.server 461 " + client->getNickName() + "JOIN :Not enough parameters \r\n");
-        return;
-     }
-    //  std::vector<std::string> channels = split(message, ' ');
-     std::string name = channels[1];
-     
-     Channel *channel = server->getChannel(name);
-     if(!channel)
-     {
-       channel = new Channel(name, "");
-       server->registerChannel(channel);
-       channel->addClient(client);
-       channel->addOperator(client);
-       client->write(" JOIN " + channel->getName() + "\r\n");
-       channel->broadcastExclude(" JOIN " + channel->getName() + "\r\n", client);
-     }
-     else
-     {
-      channel->addClient(client);
-      client->write(" JOIN " + channel->getName() + "\r\n");
-      channel->broadcastExclude(" JOIN " + channel->getName() + "\r\n", client);
-     }
+	 if(channels.size() == 0)
+		 {
+				client->write(":ft_irc.server 461 " + client->getNickName() + "JOIN :Not enough parameters \r\n");
+				return;
+		 }
+		//  std::vector<std::string> channels = split(message, ' ');
+		 std::string name = channels[1];
+		 
+		 Channel *channel = server->getChannel(name);
+		 if(!channel)
+		 {
+			 channel = new Channel(name, "");
+			 server->registerChannel(channel);
+			 channel->addClient(client);
+			 channel->addOperator(client);
+			 client->write(" JOIN " + channel->getName() + "\r\n");
+			 channel->broadcastExclude(" JOIN " + channel->getName() + "\r\n", client);
+		 }
+		 else
+		 {
+			channel->addClient(client);
+			client->write(" JOIN " + channel->getName() + "\r\n");
+			channel->broadcastExclude(" JOIN " + channel->getName() + "\r\n", client);
+		 }
 }

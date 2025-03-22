@@ -31,7 +31,9 @@ Client& Client::operator=(const Client &other)
     return(*this);
 }
 
-Client::~Client() {}
+Client::~Client()
+{
+}
 
 //getters
 int Client::getSocketFd(void) const

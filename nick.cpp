@@ -20,9 +20,11 @@ bool isValidNickName(const std::string& nickName) {
 }
 
 
-void nick(Server *server, Client *client, std::string nick)
+void handleNick(Server *server, Client *client, std::vector<std::string>& params)
 {
-   std::cout<< nick;
+	if (params.size() > 2)
+		(client)->write(ERR_ERRONEUSNICKNAME);
+	std::string nick = params[1];
  	if (!isValidNickName(nick))
 		(client)->write(ERR_ERRONEUSNICKNAME);
 	else if (isNickNameInUse(server, nick))

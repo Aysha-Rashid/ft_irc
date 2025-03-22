@@ -13,6 +13,8 @@
 #define ERR_NEEDMOREPARAMS std::string ("461 :Not enough parameters\r\n")
 
 extern bool running;
+// extern bool out;
+// extern bool out;
 
 // void handlePass(int client_fd, std::vector<std::string> param);
 // void handleNick(int client_fd, std::vector<std::string> param);
@@ -54,7 +56,7 @@ class Server
         socklen_t           _addrlen;
         fd_set              _readfds;
         int                 _maxfd;
-        int                 out;
+        bool                out;
 
     public:
         std::vector<Client *> clients;
@@ -74,9 +76,9 @@ class Server
         void        run(void);
         void        setFds(void);
         void        ClientCommunication(void);
-        int         Commands(Client **client, int socket, std::string commands);
+        int         Commands(Client *client, int socket, std::string commands);
         void        disconnected(Client *&client, int socket);
-        int         handleAuthentication(std::string message, Client **client);
+        int         handleAuthentication(std::string message, Client *client);
         void        registerChannel(Channel *channel);
         Channel     *getChannel(std::string &name);
         void        deleteChannel(Channel *Channel);
