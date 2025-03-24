@@ -20,7 +20,7 @@ Server::Server(std::string name) : _serverName(name) {
 
 
 // ✅ Ensure These Are Defined Before Using Them
-void handlePass(Server *server, Client *client, std::vector<std::string>& params) {
+void handlePass(const Server &server, const Client &client, std::vector<std::string>& params) {
 	if(params.empty())
 	{
 		client->write("Not enough parameters \r\n");

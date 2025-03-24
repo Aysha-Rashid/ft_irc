@@ -1,4 +1,5 @@
-#include "Ft_Irc.hpp"
+
+# include "Ft_Irc.hpp"
 # include "Server.hpp"
 
 Server::Server(std::string name) : _serverName(name) {
@@ -19,7 +20,8 @@ Server::Server(std::string name) : _serverName(name) {
 
 
 // ✅ Ensure These Are Defined Before Using Them
-void handlePass(Server *server, Client *client, std::vector<std::string>& params) {
+void handlePass(const Server &server, const Client &client, std::vector<std::string>& params) 
+{
 	if (client->getState() == UNAUTHENTICATED) {
         if (params.size() < 2) {
             return;
@@ -27,10 +29,9 @@ void handlePass(Server *server, Client *client, std::vector<std::string>& params
         if (params[1] == server->getPassword())
             client->setState(AUTHENTICATED);
 	}
-
 }
 
-void handleUser(Server *server, Client *client, std::vector<std::string>& params) {
+void handleUser(const Server &server, const Client &client, std::vector<std::string>& params) {
 	if (client->getState() == AUTHENTICATED && !client->getNickName().empty() && client->getUserName().empty()) {
 		std::string username, realName, mode, permission;
 		username = params[1];
@@ -50,30 +51,30 @@ void handleUser(Server *server, Client *client, std::vector<std::string>& params
 	}
 }
 
-void handlePart(Server *server, Client *client, std::vector<std::string>& params) {
+void handlePart(const Server &server, const Client &client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handleInvite(Server *server, Client *client, std::vector<std::string>& params) {
+void handleInvite(const Server &server, const Client &client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handleMode(Server *server, Client *client, std::vector<std::string>& params) {
+void handleMode(const Server &server, const Client &client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handlePing(Server *server, Client *client, std::vector<std::string>& params) {
+void handlePing(const Server &server, const Client &client, std::vector<std::string>& params) {
 	// Function logic
 }
-// void handleQuit(Server *server, Client *client, std::vector<std::string>& params) {
+// void handleQuit(const Server &server, const Client &client, std::vector<std::string>& params) {
 // 	// Function logic
 // }
 
 
-void handleWho(Server *server, Client *client, std::vector<std::string>& params) {
+void handleWho(const Server &server, const Client &client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handleKick(Server *server, Client *client, std::vector<std::string>& params) {
+void handleKick(const Server &server, const Client &client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handlePrivMsg(Server *server, Client *client, std::vector<std::string>& params) {
+void handlePrivMsg(const Server &server, const Client &client, std::vector<std::string>& params) {
 	// Function logic
 }
 
