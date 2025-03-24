@@ -13,12 +13,7 @@
 #define ERR_NEEDMOREPARAMS std::string ("461 :Not enough parameters\r\n")
 
 extern bool running;
-// extern bool out;
-// extern bool out;
 
-// void handlePass(int client_fd, std::vector<std::string> param);
-// void handleNick(int client_fd, std::vector<std::string> param);
-// void handleUser(int client_fd, std::vector<std::string> param);
 class Server;
 typedef void (*CommandHandler)(Server *,Client *, std::vector<std::string>&);
 
@@ -60,8 +55,7 @@ class Server
 
     public:
         std::vector<Client *> clients;
-        std::vector<Command> commands;  // ✅ Replace `map` with `vector`
-        // std::map<std::string, Command> commands;
+        std::vector<Command> commands;
         std::map<std::string, Channel *> channels;
         Server(std::string name);
         ~Server();
@@ -76,13 +70,14 @@ class Server
         void        run(void);
         void        setFds(void);
         void        ClientCommunication(void);
-        int         Commands(Client *client, int socket, std::string commands);
+        int         Commands(Client *client, std::string commands);
         void        disconnected(Client *&client, int socket);
         int         handleAuthentication(std::string message, Client *client);
         void        registerChannel(Channel *channel);
         Channel     *getChannel(std::string &name);
         void        deleteChannel(Channel *Channel);
         Client      *getClientByFd(int client_fd);
+        void        deleteClient(int socket);
 };
 
 

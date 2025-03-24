@@ -8,6 +8,8 @@ handle quit - delete the client - DONE
 CTRL+Z -> remove the client socket from the server when ctrl+z is pressed
 pass - just do a check in the beginning; STARE OF THE CLIENT
 
+CTRL+D -> only works one time and the second time exits (check if its alright)
+
 CHECK FOR CAPITALIZATION IN LIMECHAT FOR COMMANDS
     - Joins the channel regardless of the CAPITALIZATION or lowercase in the channel
         and identifies all the channel eg : (HELLO, heLLo, Hello) as same channel but will
@@ -23,3 +25,7 @@ join or JOIN or /join or /JOIN - both works
 when i try to chat in a channel that i parted - (Reply(403): #HO No such channel)
 
 when a client joined a existing channel - the mode for them  (Mode: +nst)
+
+if there is a lot of spaces in the beginning then nothing happens (not consider as a invalid command or nor trims the spaces)
+
+alot of "///" removes only one. (keep it for last)

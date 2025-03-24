@@ -1,13 +1,11 @@
 #include "Ft_Irc.hpp"
 # include "Server.hpp"
 
-// bool out = false;
 Server::Server(std::string name) : _serverName(name) {
-	commands.push_back(Command("PASS", handlePass, UNAUTHENTICATED));
+	commands.push_back(Command("PASS", handlePass, UNAUTHENTICATED)); //done
 	commands.push_back(Command("NICK", handleNick, AUTHENTICATED)); // done
 	commands.push_back(Command("USER", handleUser, AUTHENTICATED)); // done
 	commands.push_back(Command("JOIN", handleJoin, REGISTERED)); // done but the real implementation is left
-	commands.push_back(Command("QUIT", handleQuit, UNAUTHENTICATED)); // done
 	commands.push_back(Command("PART", handlePart, REGISTERED));
 	commands.push_back(Command("INVITE", handleInvite, REGISTERED));
 	commands.push_back(Command("MODE", handleMode, REGISTERED));
@@ -24,27 +22,21 @@ Server::Server(std::string name) : _serverName(name) {
 void handlePass(Server *server, Client *client, std::vector<std::string>& params) {
 	if (client->getState() == UNAUTHENTICATED) {
         if (params.size() < 2) {
-            client->write("Error: Password required\r\n");
             return;
         }
-        if (params[1] == server->getPassword()) {
+        if (params[1] == server->getPassword())
             client->setState(AUTHENTICATED);
-            client->write("Password accepted. You are now authenticated.\r\n");
-        } else {
-            client->write("Incorrect Password\r\n");
-            server->Commands(client, client->getSocketFd(), "QUIT");
-        }
-    } else
-        client->write("You are already authenticated.\r\n");
+	}
+
 }
 
 void handleUser(Server *server, Client *client, std::vector<std::string>& params) {
-	if (client->getState() == AUTHENTICATED && !client->getNickName().empty()) {
+	if (client->getState() == AUTHENTICATED && !client->getNickName().empty() && client->getUserName().empty()) {
 		std::string username, realName, mode, permission;
 		username = params[1];
-		realName = params[2];
-		mode = params[3];
-		permission = params[4];
+		mode = params[2];
+		permission = params[3];
+		realName = params[4];
 		if (mode.size() > 1 || mode.empty() || username.empty() || permission.empty() || realName.empty())
 			client->write(ERR_NEEDMOREPARAMS);
 		else {
@@ -74,17 +66,6 @@ void handlePing(Server *server, Client *client, std::vector<std::string>& params
 // 	// Function logic
 // }
 
-void handleQuit(Server *server, Client *client, std::vector<std::string>& params) {
-    (void) server;
-    (void) params;
-    if (client != nullptr)
-	{
-        if (!client->getNickName().empty())
-            std::cout << client->getNickName() << " disconnected." << std::endl;
-        close(client->getSocketFd());
-        delete client;
-    }
-}
 
 void handleWho(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
@@ -95,12 +76,40 @@ void handleKick(Server *server, Client *client, std::vector<std::string>& params
 void handlePrivMsg(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
+
 // void handleCap(Server *server, int client_fd, std::vector<std::string>& params) {
 //     // Function logic
 // }
-// void handlePong(int client_fd, std::vector<std::string>& params) {
+// void handlePong(Server *server, Client *client, std::vector<std::string>& params) {
 //     // Function logic
+// 	(void) server;
+// 	(void) params;
+// 	(void) client;
 // }
+
+
+void   Server::deleteClient(int socket)
+{
+	for(std::vector<Client *>::iterator it = clients.begin(); it != clients.end(); it++)
+	{
+		// should state the reason for quiting
+		if ((*it)->getSocketFd() == socket)
+		{
+			std::string message;
+			if (!(*it)->getNickName().empty())
+				message = (*it)->getNickName() + " disconnected.\r\n";
+			else
+				message = "client " + std::to_string((*it)->getSocketFd()) + " disconnected.\r\n";
+			send((*it)->getSocketFd(), message.c_str(), message.length(), 0);
+			std::cout << message;
+			FD_CLR((*it)->getSocketFd(), &_readfds);
+            close((*it)->getSocketFd());
+            delete *it;
+            clients.erase(it);
+            break;
+		}
+	}
+}
 
 Server::~Server()
 {
@@ -156,58 +165,6 @@ static void checkError(int result, const char *error, const std::string &errmeg)
 	}
 }
 
-void Server::setFds() {
-	FD_ZERO(&_readfds);
-	FD_SET(_socketFd, &_readfds);
-	_maxfd = _socketFd;
-
-	for (std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
-		Client* client = *it;
-		FD_SET(client->getSocketFd(), &_readfds);
-		if (client->getSocketFd() > _maxfd) {
-			_maxfd = client->getSocketFd();
-		}
-	}
-}
-
-static void signal_handler(int signal)
-{
-	if (signal == SIGINT)
-		running = 0;
-	if (signal == SIGQUIT)
-		running = 1;
-}
-
-void Server::acceptConnection(void)
-{
-	struct sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
-	int newClient_fd = accept(_socketFd, (struct sockaddr*)&client_addr, &client_len);
-	if (newClient_fd >= 0){
-		std::cout << "New client attempting to connect: " << newClient_fd << std::endl;
-		fcntl(newClient_fd, F_SETFL, O_NONBLOCK);
-		std::string inet_addr = inet_ntoa(client_addr.sin_addr);
-		Client *currentClient = new Client(newClient_fd, inet_addr);
-   		currentClient->setSocketFd(newClient_fd);
-		clients.push_back(currentClient);
-	}
-}
-
-void Server::run(void)
-{
-	while (running)
-	{
-		this->setFds();
-		int activity = select(_maxfd + 1, &_readfds, NULL, NULL, NULL);
-		if (activity < 0) {
-			std::cerr << "Error in select" << std::endl;
-			continue;
-		}
-		if (FD_ISSET(_socketFd, &_readfds))
-			acceptConnection();
-		ClientCommunication();
-	}
-}
 
 void    Server::creatingServer(Server &server)
 {
@@ -227,7 +184,53 @@ void    Server::creatingServer(Server &server)
 	server.run();
 }
 
-int Server::Commands(Client *client, int socket, std::string commandStr)
+void Server::setFds()
+{
+	FD_ZERO(&_readfds);
+	FD_SET(_socketFd, &_readfds);
+	_maxfd = _socketFd;
+
+	for (std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+		Client* client = *it;
+		FD_SET(client->getSocketFd(), &_readfds);
+		if (client->getSocketFd() > _maxfd) {
+			_maxfd = client->getSocketFd();
+		}
+	}
+}
+
+void Server::acceptConnection(void)
+{
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+	int newClient_fd = accept(_socketFd, (struct sockaddr*)&client_addr, &client_len);
+	if (newClient_fd >= 0)
+	{
+		std::cout << "New client attempting to connect: " << newClient_fd << std::endl;
+		fcntl(newClient_fd, F_SETFL, O_NONBLOCK);
+		std::string inet_addr = inet_ntoa(client_addr.sin_addr);
+		Client *currentClient = new Client(newClient_fd, inet_addr);
+   		currentClient->setSocketFd(newClient_fd);
+		clients.push_back(currentClient);
+	}
+}
+
+void Server::run(void)
+{
+	while (running)
+	{
+		this->setFds();
+		int activity = select(_maxfd + 1, &_readfds, NULL, NULL, NULL);
+		if (activity < 0)
+ 			continue;
+		if (FD_ISSET(_socketFd, &_readfds))
+			acceptConnection();
+		ClientCommunication();
+	}
+	close(_maxfd);
+}
+
+int Server::Commands(Client *client, std::string commandStr)
 {
 	for (size_t i = 0; i < commands.size(); i++) {
 		if (commandStr.substr(0, commands[i].label.size()) == commands[i].label) {
@@ -248,20 +251,21 @@ int Server::Commands(Client *client, int socket, std::string commandStr)
 	return 1;
 }
 
-
 void Server::ClientCommunication() {
-	for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end();) {
 	out = false;
+	for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end();) {
 		Client* client = *it;
-		if (FD_ISSET(client->getSocketFd(), &getReadfds())) {
+		if (FD_ISSET(client->getSocketFd(), &getReadfds())){
 			char buffer[1024];
 			size_t bytesReceived = recv(client->getSocketFd(), buffer, sizeof(buffer) - 1, 0);
-			if (bytesReceived == 0 && out == false) {
-				Commands(client, client->getSocketFd(), "QUIT");
-				it = clients.erase(it);
+			if (bytesReceived == 0) {
+				deleteClient(client->getSocketFd());
+				out = true;
 				continue;
 			}
 			if (bytesReceived < 0) {
+				deleteClient(client->getSocketFd());
+				out = true;
 				perror("recv error");
 				continue;
 			}
@@ -269,7 +273,7 @@ void Server::ClientCommunication() {
 			std::string receivedData(buffer);
 			client->inputBuffer += receivedData;
 			size_t newlinePos;
-			while ((newlinePos = client->inputBuffer.find('\n')) != std::string::npos && running) // to handle the ctrl+d buffer
+			while ((newlinePos = client->inputBuffer.find('\n')) != std::string::npos && client) // to handle the ctrl+d buffer
 			{
 				std::string message = client->inputBuffer.substr(0, newlinePos);
 				if (message[0] == '/')
@@ -280,13 +284,13 @@ void Server::ClientCommunication() {
 				if (message.empty()) continue;
 				if (client->getState() <= AUTHENTICATED)
 				{
-					Commands(client, client->getSocketFd(), message);
+					Commands(client, message);
 					if (client->getState() == UNAUTHENTICATED && message.substr(0, 5) == "PASS ")
 					{
 						std::cout << "Authentication failed for client " << client->getSocketFd() << std::endl;
 						std::string errorMsg = "Authentication failed. Disconnecting...\r\n";
 						send(client->getSocketFd(), errorMsg.c_str(), errorMsg.length(), 0);
-						it = clients.erase(it);
+						deleteClient(client->getSocketFd());
 						out = true;
 						break;
 					}
@@ -300,25 +304,18 @@ void Server::ClientCommunication() {
 				}
 				else if (client->getState() == REGISTERED)
 				{
-					if (message == "QUIT")
+					if (message == "QUIT :")
 					{
-						Commands(client, client->getSocketFd(), "QUIT");
-						it = clients.erase(it);
+						deleteClient(client->getSocketFd());
 						out = true;
-						break; 
+						break;
 					}
-					else
-						Commands(client, client->getSocketFd(), message);
-				// 	if (client->getJoinChannel())
-				// 	{
-				// 		std::string broadcastMsg = client->getNickName() + ": " + message + "\r\n";
-				// 		client->broadcastMessage(this, client, broadcastMsg);
-				// 		std::cout << broadcastMsg;
-				// }
+					Commands(client, message);
 				}
+				// std::cout << message << "\n";
 			}
 			if (out == true)
-				continue;
+				continue ;
 		}
 		++it;
 	}
