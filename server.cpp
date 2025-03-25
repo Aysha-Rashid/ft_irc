@@ -14,18 +14,18 @@ Server::Server(std::string name) : _serverName(name) {
 	commands.push_back(Command("KICK", handleKick, REGISTERED));
 	commands.push_back(Command("PRIVMSG", handlePrivMsg, REGISTERED));
 	// commands.push_back(Command("CAP", handleCap, UNAUTHENTICATED));
-	// commands.push_back(Command("PONG", handlePong, UNAUTHENTICATED));
+	commands.push_back(Command("PONG", handlePong, UNAUTHENTICATED));
 }
 
 
 // ✅ Ensure These Are Defined Before Using Them
 void handlePass(Server *server, Client *client, std::vector<std::string>& params) {
 	if (client->getState() == UNAUTHENTICATED) {
-        if (params.size() < 2) {
-            return;
-        }
-        if (params[1] == server->getPassword())
-            client->setState(AUTHENTICATED);
+		if (params.size() < 2) {
+			return;
+		}
+		if (params[1] == server->getPassword())
+			client->setState(AUTHENTICATED);
 	}
 
 }
@@ -59,33 +59,33 @@ void handleInvite(Server *server, Client *client, std::vector<std::string>& para
 void handleMode(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
 }
-void handlePing(Server *server, Client *client, std::vector<std::string>& params) {
+
+// void handlePing(Server *server, Client *client, std::vector<std::string>& params) {
 	// Function logic
-}
+// }
+
 // void handleQuit(Server *server, Client *client, std::vector<std::string>& params) {
-// 	// Function logic
+	// Function logic
 // }
-
-
+	
+	
 void handleWho(Server *server, Client *client, std::vector<std::string>& params) {
-	// Function logic
-}
+		// Function logic
+	}
 void handleKick(Server *server, Client *client, std::vector<std::string>& params) {
-	// Function logic
-}
+		// Function logic
+	}
 void handlePrivMsg(Server *server, Client *client, std::vector<std::string>& params) {
-	// Function logic
-}
-
+		// Function logic
+	}
+	
 // void handleCap(Server *server, int client_fd, std::vector<std::string>& params) {
-//     // Function logic
-// }
-// void handlePong(Server *server, Client *client, std::vector<std::string>& params) {
-//     // Function logic
-// 	(void) server;
-// 	(void) params;
-// 	(void) client;
-// }
+	// Function logic
+//}
+
+void handlePong(Server *server, Client *client, std::vector<std::string>& params) {
+			// Function logic
+}
 
 
 void   Server::deleteClient(int socket)
@@ -103,10 +103,10 @@ void   Server::deleteClient(int socket)
 			send((*it)->getSocketFd(), message.c_str(), message.length(), 0);
 			std::cout << message;
 			FD_CLR((*it)->getSocketFd(), &_readfds);
-            close((*it)->getSocketFd());
-            delete *it;
-            clients.erase(it);
-            break;
+			close((*it)->getSocketFd());
+			delete *it;
+			clients.erase(it);
+			break;
 		}
 	}
 }
@@ -277,48 +277,48 @@ void Server::ClientCommunication() {
 			{
 				std::string message = client->inputBuffer.substr(0, newlinePos);
 				if (message[0] == '/')
-					message = message.substr(1);
-				client->inputBuffer.erase(0, newlinePos + 1); // Remove processed part
-				if (!message.empty() && message.back() == '\r')
-					message.pop_back();
-				if (message.empty()) continue;
-				if (client->getState() <= AUTHENTICATED)
-				{
-					Commands(client, message);
-					if (client->getState() == UNAUTHENTICATED && message.substr(0, 5) == "PASS ")
-					{
-						std::cout << "Authentication failed for client " << client->getSocketFd() << std::endl;
-						std::string errorMsg = "Authentication failed. Disconnecting...\r\n";
-						send(client->getSocketFd(), errorMsg.c_str(), errorMsg.length(), 0);
-						deleteClient(client->getSocketFd());
-						out = true;
-						break;
-					}
-				}
-				if (client->getState() == AUTHENTICATED && !client->getNickName().empty() && !client->getUserName().empty()) {
-					client->setState(REGISTERED);
-					std::string welcomeMsg = ":" + getServerName() + " 001 " + client->getNickName() + " :Welcome to the IRC server, " + client->getNickName() + "\r\n";
-					// server 001 is a numeric reply code used by the IRC server to indicate that the client has successfully connected.
-					send(client->getSocketFd(), welcomeMsg.c_str(), welcomeMsg.length(), 0);
-					std::cout << welcomeMsg;
-				}
-				else if (client->getState() == REGISTERED)
-				{
-					if (message == "QUIT :")
-					{
-						deleteClient(client->getSocketFd());
-						out = true;
-						break;
-					}
-					Commands(client, message);
-				}
-				// std::cout << message << "\n";
+				message = message.substr(1);
+			client->inputBuffer.erase(0, newlinePos + 1); // Remove processed part
+			if (!message.empty() && message.back() == '\r')
+			message.pop_back();
+		if (message.empty()) continue;
+		if (client->getState() <= AUTHENTICATED)
+		{
+			Commands(client, message);
+			if (client->getState() == UNAUTHENTICATED && message.substr(0, 5) == "PASS ")
+			{
+				std::cout << "Authentication failed for client " << client->getSocketFd() << std::endl;
+				std::string errorMsg = "Authentication failed. Disconnecting...\r\n";
+				send(client->getSocketFd(), errorMsg.c_str(), errorMsg.length(), 0);
+				deleteClient(client->getSocketFd());
+				out = true;
+				break;
 			}
-			if (out == true)
-				continue ;
 		}
-		++it;
+		if (client->getState() == AUTHENTICATED && !client->getNickName().empty() && !client->getUserName().empty()) {
+			client->setState(REGISTERED);
+			std::string welcomeMsg = ":" + getServerName() + " 001 " + client->getNickName() + " :Welcome to the IRC server, " + client->getNickName() + "\r\n";
+			// server 001 is a numeric reply code used by the IRC server to indicate that the client has successfully connected.
+			send(client->getSocketFd(), welcomeMsg.c_str(), welcomeMsg.length(), 0);
+			std::cout << welcomeMsg;
+		}
+		else if (client->getState() == REGISTERED)
+		{
+			if (message.find("QUIT") != std::string::npos)
+			{
+				deleteClient(client->getSocketFd());
+				out = true;
+				break;
+			}
+			Commands(client, message);
+		}
+		// std::cout << message << "\n";
 	}
+	if (out == true)
+	continue ;
+}
+++it;
+}
 }
 
 void Server::registerChannel(Channel *channel)
