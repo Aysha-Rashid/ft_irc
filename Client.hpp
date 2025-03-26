@@ -3,14 +3,12 @@
 
 # include <sys/socket.h>
 # include <string>
-#include <unistd.h>
-#include <iostream>
+
 enum    clientState
 {   
     UNAUTHENTICATED,
     AUTHENTICATED,
     REGISTERED,
-    DISCONNECTED,
 };  
 
 class Client    
@@ -23,6 +21,8 @@ private:
     std::string _realname;
     clientState  _state;
     int _channelCount;
+    
+    
 
 public:
     Client();  

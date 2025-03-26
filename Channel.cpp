@@ -108,11 +108,9 @@ void Channel::setInvited(Client *client)
     std::vector<Client *> :: iterator it = _invitedList.begin();
      while (it != _invitedList.end())
     {
-        if(*it == client)
-        {
-          return;
-        }
-        ++it;
+       if(*it == client)
+            return;
+       ++it;
     }
     _invitedList.push_back(client);
 }
@@ -147,11 +145,9 @@ void Channel::removeClient(Client *client)
             break;
         }
         ++it;
-        
     }
     _operators.erase(client->getNickName());
     client->decrementChannelCount();
-
 }
 
 void Channel::addOperator(const Client *client)
@@ -174,7 +170,7 @@ void Channel::broadcast(const std::string &message)
     }
 }
 
-void Channel::broadcastExclude(const std::string &message,const Client *excludeClient)
+void Channel::broadcast(const std::string &message,const Client *excludeClient)
 {
     std::vector<Client *>::iterator it = _clientList.begin();
     while (it != _clientList.end())
@@ -190,7 +186,6 @@ bool Channel::isOperator(const Client *client) const
     std::map<std::string, bool> ::const_iterator it = _operators.find(client->getNickName());
     if(it != _operators.end())
         return (it->second);
-
     return (false);    
 }
 
@@ -200,13 +195,10 @@ bool Channel::isInvited(const Client *client)
      while (it != _invitedList.end())
     {
         if(*it == client)
-        {
-          return (true);
-        }
+            return (true);
         ++it;
     }
     return (false);
-
 }
 
 bool Channel::isClientInChannel(const Client *client) const
@@ -215,9 +207,7 @@ bool Channel::isClientInChannel(const Client *client) const
     while (it != _clientList.end())
     {
         if(*it == client)
-        {
             return (true);
-        }
         ++it;
     }
     return (false);

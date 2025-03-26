@@ -3,8 +3,8 @@
 # include "Client.hpp"
 
 
-bool isNickNameInUse(Server *server, const std::string& nickName) {
-	for (std::vector<Client *>::iterator it = server->clients.begin(); it != server->clients.end(); it++) {
+bool isNickNameInUse(Server &server, const std::string& nickName) {
+	for (std::vector<Client *>::iterator it = server.clients.begin(); it != server.clients.end(); it++) {
 		if ((*it)->getNickName() == nickName) {
 			return true;
 		}
@@ -19,17 +19,22 @@ bool isValidNickName(const std::string& nickName) {
 	return true;
 }
 
-
-void handleNick(Server *server, Client *client, std::vector<std::string>& params)
+void handleNick(Server &server, Client &client, std::vector<std::string>& params)
 {
-	std::string nick = params[1];
- 	if (!isValidNickName(nick))
-		(client)->write(ERR_ERRONEUSNICKNAME);
-	else if (isNickNameInUse(server, nick))
-		(client)->write(ERR_NICKNAMEINUSE);
+	if(params.empty() || params[0].empty())
+	{
+		
+		if(client.getNickName().empty())
+			client.write(ERR_NONICKNAMEGIVEN);
+		else
+			client.write("431" + client.getNickName() + ":No nickname given\r\n");	
+		return;
+	}
+	if (!isValidNickName(params[0]))
+		(client).write(ERR_ERRONEUSNICKNAME);
+	else if (isNickNameInUse(server, params[0]))
+		(client).write(ERR_NICKNAMEINUSE);
 	else {
-		(client)->setNickName(nick);
+		(client).setNickName(params[0]);
 		}
 }
-  
-

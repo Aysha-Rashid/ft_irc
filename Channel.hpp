@@ -7,6 +7,8 @@
 
 # include "Client.hpp"
 
+# define MAX_CHANNEL_COUNT   10
+
 class Channel
 {
 private:
@@ -52,7 +54,7 @@ public:
     void addOperator(const Client *client);
     void removeOperator(const Client *client);
     void broadcast(const std::string &message);
-    void broadcastExclude(const std::string &message, const Client *excludeClient);
+    void broadcast(const std::string &message, const Client *excludeClient);
     bool isOperator(const Client *client) const;
     bool isInvited(const Client *client);
     bool isClientInChannel(const Client *client) const;
