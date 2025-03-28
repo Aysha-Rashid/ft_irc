@@ -42,7 +42,6 @@ void handlePass(Server &server, Client &client, std::vector<std::string>& params
 
 void handleUser(Server &server, Client &client, std::vector<std::string>& params) 
 {
-	(void) server;
 	if(client.getState() == REGISTERED)
 	{
 		client.write(server.getServerName() + ERR_ALREADYREGISTERED);
@@ -58,8 +57,8 @@ void handleUser(Server &server, Client &client, std::vector<std::string>& params
 	client.setRealName(params[3]);
 	if(!client.getNickName().empty())
 		client.setState(REGISTERED);
-	client.write(":" + server.getServerName() + " 001 " + client.getNickName() + RPL_WELCOME + client.getNickName() + "\r\n");	
-	std::cout << " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
+	client.write(":" + client.getPrefix() + " 001 " + client.getNickName() + " :Welcome " + client.getNickName() + " to the " + server.getServerName() + " network\r\n");	
+	std::cout << " 001 " + client.getPrefix() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
 	}
 
 

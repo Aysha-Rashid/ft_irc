@@ -61,7 +61,6 @@ class Server
     public:
         std::vector<Client *> clients;
         std::vector<Command> commands;  // ✅ Replace `map` with `vector`
-        // std::map<std::string, Command> commands;
         std::map<std::string, Channel *> channels;
         Server(std::string name);
         ~Server();
@@ -76,15 +75,11 @@ class Server
         void        run(void);
         void        setFds(void);
         void        ClientCommunication(void);
-        // int         Commands(Client **client, int socket, std::string commands);
         void        disconnected(Client *&client, int socket);
-        // int         handleAuthentication(std::string message, Client **client);
         void        registerChannel(Channel *channel);
         Channel     *getChannel(std::string &name);
         void        deleteChannel(Channel *Channel);
-        // Client      *getClientByFd(int client_fd);
         void        disconnectClient(int socket, const std::string reason);
 };
-
 
 # endif

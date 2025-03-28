@@ -59,6 +59,12 @@ std::string Client::getIpAddress(void)   const
     return (_ipAddress);
 }
 
+std::string Client::getPrefix(void)   const
+{
+    std::string username = _username.empty() ? "" : "!" + _username;
+    return (_nickname + username);
+}
+
 int Client::getChannelCount(void)   const
 {
     return (_channelCount);
