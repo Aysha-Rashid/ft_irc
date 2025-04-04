@@ -14,31 +14,36 @@
 
 extern bool running;
 
+// void handlePass(int client_fd, std::vector<std::string> param);
+// void handleNick(int client_fd, std::vector<std::string> param);
+// void handleUser(int client_fd, std::vector<std::string> param);
 class Server;
-typedef void (*CommandHandler)(Server *,Client *, std::vector<std::string>&);
+// Define the command handler type
+typedef void (*CommandHandler)(Server &server, Client &client, std::vector<std::string>&);
 
-struct Command {
+struct Command{
     std::string label;
     CommandHandler handler;
     clientState requiredAuthState;
-    Command(const std::string& lbl, CommandHandler handle, clientState Auto) : label(lbl), handler(handle), requiredAuthState(Auto) {}
+    Command(const std::string& lbl, CommandHandler handle,  clientState auth) : label(lbl), handler(handle), requiredAuthState(auth) {}
 };
 
 
-void handlePass(Server *server, Client *client, std::vector<std::string>& params);
-void handleNick(Server *server, Client *client, std::vector<std::string>& params);
-void handleUser(Server *server, Client *client, std::vector<std::string>& params);
-void handleJoin(Server *server, Client *client, std::vector<std::string>& param);
-void handlePart(Server *server, Client *client, std::vector<std::string>& param);
-void handleInvite(Server *server, Client *client, std::vector<std::string>& param);
-void handleMode(Server *server, Client *client, std::vector<std::string>& param);
-void handlePing(Server *server, Client *client, std::vector<std::string>& param);
-void handleQuit(Server *server, Client *client, std::vector<std::string>& param);
-void handleWho(Server *server, Client *client, std::vector<std::string>& param);
-void handleKick(Server *server, Client *client, std::vector<std::string>& param);
-void handlePrivMsg(Server *server, Client *client, std::vector<std::string>& param);
-void handleCap(Server *server, Client *client, std::vector<std::string>& param);
-void handlePong(Server *server, Client *client, std::vector<std::string>& param);
+
+void handlePass(Server &server, Client &client, std::vector<std::string>& params);
+void handleNick(Server &server, Client &client, std::vector<std::string>& params);
+void handleUser(Server &server, Client &client, std::vector<std::string>& params);
+void handleJoin(Server &server, Client &client, std::vector<std::string>& param);
+void handlePart(Server &server, Client &client, std::vector<std::string>& param);
+void handleInvite(Server &server, Client &client, std::vector<std::string>& param);
+void handleMode(Server &server, Client &client, std::vector<std::string>& param);
+void handlePing(Server &server, Client &client, std::vector<std::string>& param);
+void handleQuit(Server &server, Client &client, std::vector<std::string>& param);
+void handleWho(Server &server, Client &client, std::vector<std::string>& param);
+void handleKick(Server &server, Client &client, std::vector<std::string>& param);
+void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& param);
+void handleCap(Server &server, Client &client, std::vector<std::string>& param);
+void handlePong(Server &server, Client &client, std::vector<std::string>& param);
 
 class Server
 {
@@ -51,11 +56,11 @@ class Server
         socklen_t           _addrlen;
         fd_set              _readfds;
         int                 _maxfd;
-        bool                out;
+        int                 out;
 
     public:
         std::vector<Client *> clients;
-        std::vector<Command> commands;
+        std::vector<Command> commands;  // ✅ Replace `map` with `vector`
         std::map<std::string, Channel *> channels;
         Server(std::string name);
         ~Server();
@@ -70,15 +75,11 @@ class Server
         void        run(void);
         void        setFds(void);
         void        ClientCommunication(void);
-        int         Commands(Client *client, std::string commands);
         void        disconnected(Client *&client, int socket);
-        int         handleAuthentication(std::string message, Client *client);
         void        registerChannel(Channel *channel);
         Channel     *getChannel(std::string &name);
         void        deleteChannel(Channel *Channel);
-        Client      *getClientByFd(int client_fd);
-        void        deleteClient(int socket);
+        void        disconnectClient(int socket, const std::string reason);
 };
-
 
 # endif

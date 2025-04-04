@@ -3,14 +3,12 @@
 
 # include <sys/socket.h>
 # include <string>
-#include <unistd.h>
-#include <iostream>
+
 enum    clientState
 {   
     UNAUTHENTICATED,
     AUTHENTICATED,
     REGISTERED,
-    DISCONNECTED,
 };  
 
 class Client    
@@ -23,6 +21,8 @@ private:
     std::string _realname;
     clientState  _state;
     int _channelCount;
+    
+    
 
 public:
     Client();  
@@ -30,8 +30,7 @@ public:
     Client &operator = (const Client &other);
     Client(int fd, std::string &ip);
     ~Client();
-    std::string inputBuffer;
-
+  
     //setters
     void    setSocketFd(int socketFd);
     void    setNickName(std::string &nickname);
@@ -41,18 +40,19 @@ public:
 
     //getters
     int getSocketFd(void) const;
-    std::string getUserName(void)   const;
-    std::string getRealName(void)   const;
-    std::string getNickName(void)   const;
+    std::string getUserName(void)  const;
+    std::string getRealName(void)  const;
+    std::string getNickName(void)  const;
     std::string getIpAddress(void) const;
-    clientState getState(void)  const;
-    int getChannelCount(void)   const;
+    std::string getPrefix(void)   const;
+    clientState getState(void) const;
+    int getChannelCount(void)  const;
 
     //member    functions
     void    write(const   std::string msg)    const;
     void incrementChannelCount(void);
     void decrementChannelCount(void);
-
+    
 };
 
 # endif

@@ -31,9 +31,7 @@ Client& Client::operator=(const Client &other)
     return(*this);
 }
 
-Client::~Client()
-{
-}
+Client::~Client() {}
 
 //getters
 int Client::getSocketFd(void) const
@@ -59,6 +57,12 @@ std::string Client::getRealName(void)   const
 std::string Client::getIpAddress(void)   const
 {
     return (_ipAddress);
+}
+
+std::string Client::getPrefix(void)   const
+{
+    std::string username = _username.empty() ? "" : "!" + _username;
+    return (_nickname + username);
 }
 
 int Client::getChannelCount(void)   const
@@ -104,6 +108,8 @@ void Client::write(const   std::string msg)    const
    if(send(_fd, msg.c_str(), msg.size(), 0) < 0)
          throw std::runtime_error("Failed to send message.");
 }
+
+
 
 void Client::incrementChannelCount(void)
 {
