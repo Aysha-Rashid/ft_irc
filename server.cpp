@@ -243,6 +243,7 @@ void    Server::creatingServer(Server &server)
 	server.run();
 }
 
+/*
 int Server::handleAuthentication(std::string message, Client **client) {
 	// if (((*client)->getState() == UNAUTHENTICATED)) {
 	// 	if (message.substr(0, 5) == "PASS ") {
@@ -273,6 +274,7 @@ int Server::handleAuthentication(std::string message, Client **client) {
 	// 	}
 	return 0;
 }
+*/
 
 void Server::disconnected(Client *&client, int socket) {
 	if (client != nullptr) {
