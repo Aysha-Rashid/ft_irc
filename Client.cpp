@@ -1,6 +1,7 @@
 # include "Client.hpp"
 # include <stdexcept>
 # include <sys/socket.h>
+# include <iostream>
 
 Client::Client() {}
 
@@ -107,6 +108,8 @@ void    Client::setState(clientState state)
 //member functions
 void Client::write(const   std::string msg)    const
 {
+   if (this->getState() == REGISTERED)
+       std::cout << this->getNickName() << ": " << msg;
    if(send(_fd, msg.c_str(), msg.size(), 0) < 0)
          throw std::runtime_error("Failed to send message.");
 }

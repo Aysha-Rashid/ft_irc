@@ -2,20 +2,20 @@
 # include "Server.hpp"
 
 Server::Server(std::string name) : _serverName(name) {
-	commands.push_back(Command("PASS", handlePass, UNAUTHENTICATED));
-	commands.push_back(Command("NICK", handleNick, AUTHENTICATED));
-	commands.push_back(Command("USER", handleUser, AUTHENTICATED));
-	commands.push_back(Command("JOIN", handleJoin, REGISTERED));
-	commands.push_back(Command("PART", handlePart, REGISTERED));
-	commands.push_back(Command("INVITE", handleInvite, REGISTERED));
-	commands.push_back(Command("MODE", handleMode, REGISTERED));
-	commands.push_back(Command("PING", handlePing, REGISTERED));
-	commands.push_back(Command("QUIT", handleQuit, UNAUTHENTICATED));
-	commands.push_back(Command("WHO", handleWho, REGISTERED));
-	commands.push_back(Command("KICK", handleKick, REGISTERED));
-	commands.push_back(Command("PRIVMSG", handlePrivMsg, REGISTERED));
-	// commands.push_back(Command("CAP", handleCap, UNAUTHENTICATED));
-	// commands.push_back(Command("PONG", handlePong, UNAUTHENTICATED));
+	commands.push_back(Command("PASS", handlePass, UNAUTHENTICATED)); //Implemented
+	commands.push_back(Command("NICK", handleNick, AUTHENTICATED)); //Implemented
+	commands.push_back(Command("USER", handleUser, AUTHENTICATED)); //Implemented
+	commands.push_back(Command("JOIN", handleJoin, REGISTERED)); //Implemented
+	commands.push_back(Command("PART", handlePart, REGISTERED)); //Implemented
+	commands.push_back(Command("INVITE", handleInvite, REGISTERED)); //Implemented
+	commands.push_back(Command("MODE", handleMode, REGISTERED)); //Implemented
+	commands.push_back(Command("PING", handlePing, REGISTERED)); //Implemented
+	commands.push_back(Command("QUIT", handleQuit, UNAUTHENTICATED)); //Implemented
+	commands.push_back(Command("WHO", handleWho, REGISTERED)); //Implemented
+	commands.push_back(Command("KICK", handleKick, REGISTERED)); //Not implemented
+	commands.push_back(Command("PRIVMSG", handlePrivMsg, REGISTERED)); //Implemented
+	// commands.push_back(Command("CAP", handleCap, UNAUTHENTICATED)); //Not implemented
+	// commands.push_back(Command("PONG", handlePong, UNAUTHENTICATED)); //Not implemented
 }
 
 
@@ -64,17 +64,185 @@ void handleUser(Server &server, Client &client, std::vector<std::string>& params
 
 
 void handlePart(Server &server, Client &client, std::vector<std::string>& params) {
-	// Function logic
+    if (params.empty()) {
+        client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " PART :Not enough parameters\r\n");
+        return;
+    }
+
+    std::vector<std::string> channelNames = split(params[0], ',');
+    std::string reason = params.size() > 1 ? params[1] : "Leaving";
+
+    for (size_t i = 0; i < channelNames.size(); i++) {
+        std::string channelName = channelNames[i];
+        Channel *channel = server.getChannel(channelName);
+
+        if (!channel) {
+            client.write(":" + server.getServerName() + " 403 " + client.getNickName() + " " + channelName + " :No such channel\r\n");
+            continue;
+        }
+
+        if (!channel->isClientInChannel(&client)) {
+            client.write(":" + server.getServerName() + " 442 " + client.getNickName() + " " + channelName + " :You're not on that channel\r\n");
+            continue;
+        }
+
+        // Broadcast PART message to all channel members
+        channel->broadcast(":" + client.getPrefix() + " PART " + channelName + " :" + reason + "\r\n");
+        
+        // Remove client from channel
+        channel->removeClient(&client);
+        
+        // If channel is empty, delete it
+        if (channel->getClients().empty()) {
+            server.channels.erase(channelName);
+            delete channel;
+        }
+    }
 }
+
 void handleInvite(Server &server, Client &client, std::vector<std::string>& params) {
-	// Function logic
+    if (params.size() < 2) {
+        client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " INVITE :Not enough parameters\r\n");
+        return;
+    }
+
+    std::string targetNick = params[0];
+    std::string channelName = params[1];
+
+    // Find target client
+    Client *targetClient = nullptr;
+    for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
+        if ((*it)->getNickName() == targetNick) {
+            targetClient = *it;
+            break;
+        }
+    }
+
+    if (!targetClient) {
+        client.write(":" + server.getServerName() + " 401 " + client.getNickName() + " " + targetNick + " :No such nick\r\n");
+        return;
+    }
+
+    Channel *channel = server.getChannel(channelName);
+    if (!channel) {
+        client.write(":" + server.getServerName() + " 403 " + client.getNickName() + " " + channelName + " :No such channel\r\n");
+        return;
+    }
+
+    if (!channel->isClientInChannel(&client)) {
+        client.write(":" + server.getServerName() + " 442 " + client.getNickName() + " " + channelName + " :You're not on that channel\r\n");
+        return;
+    }
+
+    if (channel->isClientInChannel(targetClient)) {
+        client.write(":" + server.getServerName() + " 443 " + client.getNickName() + " " + targetNick + " " + channelName + " :is already on channel\r\n");
+        return;
+    }
+
+    if (!channel->isOperator(&client)) {
+        client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + channelName + " :You're not channel operator\r\n");
+        return;
+    }
+
+    // Send INVITE message to target client
+    targetClient->write(":" + client.getPrefix() + " INVITE " + targetNick + " " + channelName + "\r\n");
+    
+    // Send RPL_INVITING to inviting client
+    client.write(":" + server.getServerName() + " 341 " + client.getNickName() + " " + targetNick + " " + channelName + "\r\n");
+    
+    // Add target to invited list
+    channel->setInvited(targetClient);
 }
+
 void handleMode(Server &server, Client &client, std::vector<std::string>& params) {
-	// Function logic
+    if (params.size() < 2) {
+        client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " MODE :Not enough parameters\r\n");
+        return;
+    }
+
+    std::string target = params[0];
+    std::string mode = params[1];
+
+    // Channel mode
+    if (target[0] == '#' || target[0] == '&') {
+        Channel *channel = server.getChannel(target);
+        if (!channel) {
+            client.write(":" + server.getServerName() + " 403 " + client.getNickName() + " " + target + " :No such channel\r\n");
+            return;
+        }
+
+        if (!channel->isOperator(&client)) {
+            client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + target + " :You're not channel operator\r\n");
+            return;
+        }
+
+        // Handle mode changes
+        if (mode[0] == '+') {
+            for (size_t i = 1; i < mode.size(); i++) {
+                switch (mode[i]) {
+                    case 'i': // Invite-only mode
+                        channel->setInviteOnly(true);
+                        channel->broadcast(":" + client.getPrefix() + " MODE " + target + " +i\r\n", &client);
+                        break;
+                    case 'o': // Give operator status
+                        if (params.size() > 2) {
+                            Client *targetClient = nullptr;
+                            for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
+                                if ((*it)->getNickName() == params[2]) {
+                                    targetClient = *it;
+                                    break;
+                                }
+                            }
+                            if (targetClient && channel->isClientInChannel(targetClient)) {
+                                channel->addOperator(targetClient);
+                                channel->broadcast(":" + client.getPrefix() + " MODE " + target + " +o " + params[2] + "\r\n", &client);
+                            }
+                        }
+                        break;
+                }
+            }
+        } else if (mode[0] == '-') {
+            for (size_t i = 1; i < mode.size(); i++) {
+                switch (mode[i]) {
+                    case 'i': // Remove invite-only mode
+                        channel->setInviteOnly(false);
+                        channel->broadcast(":" + client.getPrefix() + " MODE " + target + " -i\r\n", &client);
+                        break;
+                    case 'o': // Remove operator status
+                        if (params.size() > 2) {
+                            Client *targetClient = nullptr;
+                            for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
+                                if ((*it)->getNickName() == params[2]) {
+                                    targetClient = *it;
+                                    break;
+                                }
+                            }
+                            if (targetClient && channel->isClientInChannel(targetClient)) {
+                                channel->removeOperator(targetClient);
+                                channel->broadcast(":" + client.getPrefix() + " MODE " + target + " -o " + params[2] + "\r\n", &client);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+    }
 }
+
 void handlePing(Server &server, Client &client, std::vector<std::string>& params) {
-	// Function logic
+    std::string token;
+    
+    if (params.empty()) {
+        client.write(":" + server.getServerName() + " 409 " + client.getNickName() + " :No origin specified\r\n");
+        return;
+    }
+    
+    token = params[0];
+    
+    // Reply with PONG message containing the same token
+    client.write(":" + server.getServerName() + " PONG " + server.getServerName() + " :" + token + "\r\n");
 }
+
 void handleQuit(Server &server, Client &client, std::vector<std::string>& params) {
 	std::string reason = "Leaving";
 
@@ -92,13 +260,197 @@ void handleQuit(Server &server, Client &client, std::vector<std::string>& params
 	std::cout << ": "+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n";
 }
 void handleWho(Server &server, Client &client, std::vector<std::string>& params) {
-	// Function logic
+    if (params.empty()) {
+        client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " WHO :Not enough parameters\r\n");
+        return;
+    }
+
+    std::string target = params[0];
+    bool operFlag = (params.size() > 1 && params[1] == "o");
+
+    // Check if target is a channel
+    if (target[0] == '#' || target[0] == '&') {
+        Channel *channel = server.getChannel(target);
+        if (channel) {
+            std::vector<Client*> clients = channel->getClients();
+            for (std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+                Client *member = *it;
+                
+                // Skip if "o" flag specified and member is not a channel operator
+                if (operFlag && !channel->isOperator(member))
+                    continue;
+                
+                // Format: <channel> <user> <host> <server> <nick> <H|G>[*][@|+] :<hopcount> <real name>
+                std::string flags = "H"; // H for "here", G would be "gone"
+                if (channel->isOperator(member))
+                    flags += "@"; // @ for channel operator
+                
+                client.write(":" + server.getServerName() + " 352 " + client.getNickName() + " " + 
+                             channel->getName() + " " + member->getUserName() + " " + 
+                             member->getIpAddress() + " " + server.getServerName() + " " + 
+                             member->getNickName() + " " + flags + " :0 " + 
+                             member->getRealName() + "\r\n");
+            }
+        }
+    } else {
+        // Handle WHO for a specific mask (nickname)
+        for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
+            Client *cli = *it;
+            
+            // Check if client matches the mask (simple implementation - just exact nickname match)
+            if (cli->getNickName() == target || target == "*") {
+                if (operFlag) {
+                    // Check if client is an operator in any channel
+                    bool isOp = false;
+                    for (std::map<std::string, Channel*>::iterator ch = server.channels.begin(); ch != server.channels.end(); ++ch) {
+                        if (ch->second->isOperator(cli)) {
+                            isOp = true;
+                            break;
+                        }
+                    }
+                    if (!isOp) continue;
+                }
+                
+                // Find a channel the client is in (if any) for the response
+                std::string channelName = "*";
+                std::string flags = "H";
+                
+                for (std::map<std::string, Channel*>::iterator ch = server.channels.begin(); ch != server.channels.end(); ++ch) {
+                    if (ch->second->isClientInChannel(cli)) {
+                        channelName = ch->second->getName();
+                        if (ch->second->isOperator(cli))
+                            flags += "@";
+                        break;
+                    }
+                }
+                
+                client.write(":" + server.getServerName() + " 352 " + client.getNickName() + " " + 
+                             channelName + " " + cli->getUserName() + " " + 
+                             cli->getIpAddress() + " " + server.getServerName() + " " + 
+                             cli->getNickName() + " " + flags + " :0 " + 
+                             cli->getRealName() + "\r\n");
+            }
+        }
+    }
+    
+    // End of WHO list
+    client.write(":" + server.getServerName() + " 315 " + client.getNickName() + " " + target + " :End of WHO list\r\n");
 }
 void handleKick(Server &server, Client &client, std::vector<std::string>& params) {
-	// Function logic
+    if (params.size() < 2) {
+        client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " KICK :Not enough parameters\r\n");
+        return;
+    }
+
+    std::string channelName = params[0];
+    std::string targetNick = params[1];
+    std::string reason = "Kicked";
+    
+    // If there's a reason provided, use it
+    if (params.size() > 2) {
+        reason = params[2];
+        if (reason[0] == ':')
+            reason = reason.substr(1);
+        
+        // Combine additional parameters for reason if there are any
+        for (size_t i = 3; i < params.size(); i++) {
+            reason += " " + params[i];
+        }
+    }
+
+    // Check if channel exists
+    Channel *channel = server.getChannel(channelName);
+    if (!channel) {
+        client.write(":" + server.getServerName() + " 403 " + client.getNickName() + " " + channelName + " :No such channel\r\n");
+        return;
+    }
+
+    // Check if kicker is in channel
+    if (!channel->isClientInChannel(&client)) {
+        client.write(":" + server.getServerName() + " 442 " + client.getNickName() + " " + channelName + " :You're not on that channel\r\n");
+        return;
+    }
+
+    // Check if kicker is a channel operator
+    if (!channel->isOperator(&client)) {
+        client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + channelName + " :You're not channel operator\r\n");
+        return;
+    }
+
+    // Find target client
+    Client *targetClient = nullptr;
+    for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
+        if ((*it)->getNickName() == targetNick) {
+            targetClient = *it;
+            break;
+        }
+    }
+
+    // Check if target exists
+    if (!targetClient) {
+        client.write(":" + server.getServerName() + " 401 " + client.getNickName() + " " + targetNick + " :No such nick\r\n");
+        return;
+    }
+
+    // Check if target is in the channel
+    if (!channel->isClientInChannel(targetClient)) {
+        client.write(":" + server.getServerName() + " 441 " + client.getNickName() + " " + targetNick + " " + channelName + " :They aren't on that channel\r\n");
+        return;
+    }
+
+    // Broadcast kick message to all members of the channel
+    std::string kickMsg = ":" + client.getPrefix() + " KICK " + channelName + " " + targetNick + " :" + reason + "\r\n";
+    channel->broadcast(kickMsg);
+
+    // Remove client from channel
+    channel->removeClient(targetClient);
 }
 void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& params) {
-	// Function logic
+    if (params.size() < 2) {
+        client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " PRIVMSG :Not enough parameters\r\n");
+        return;
+    }
+
+    std::string target = params[0];
+    std::string message = params[1];
+    if (message[0] == ':')
+        message = message.substr(1);
+    for (size_t i = 2; i < params.size(); i++)
+        message += " " + params[i];
+
+    // If target starts with # or &, it's a channel message
+    if (target[0] == '#' || target[0] == '&') {
+        Channel *channel = server.getChannel(target);
+        if (!channel) {
+            client.write(":" + server.getServerName() + " 403 " + client.getNickName() + " " + target + " :No such channel\r\n");
+            return;
+        }
+
+        if (!channel->isClientInChannel(&client)) {
+            client.write(":" + server.getServerName() + " 404 " + client.getNickName() + " " + target + " :Cannot send to channel\r\n");
+            return;
+        }
+
+        // Broadcast message to all channel members
+        channel->broadcast(":" + client.getPrefix() + " PRIVMSG " + target + " :" + message + "\r\n", &client);
+    } else {
+        // Private message to a user
+        Client *targetClient = nullptr;
+        for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
+            if ((*it)->getNickName() == target) {
+                targetClient = *it;
+                break;
+            }
+        }
+
+        if (!targetClient) {
+            client.write(":" + server.getServerName() + " 401 " + client.getNickName() + " " + target + " :No such nick\r\n");
+            return;
+        }
+
+        // Send message to target client
+        targetClient->write(":" + client.getPrefix() + " PRIVMSG " + target + " :" + message + "\r\n");
+    }
 }
 // void handleCap(Server *server, int client_fd, std::vector<std::string>& params) {
 //     // Function logic
@@ -342,13 +694,21 @@ void Server::ClientCommunication()
 			char buffer[1024];
 			memset(buffer,0, sizeof(buffer));
 			ssize_t bytesReceived = recv(client->getSocketFd(), buffer, sizeof(buffer) - 1, 0);
+			if (bytesReceived <= 0) {
+				std::cout << "Client disconnected or error receiving data" << std::endl;
+				disconnectClient(client->getSocketFd(), "Client disconnected");
+				continue;
+			}
 			buffer[bytesReceived] = '\0';
+			if (client->getState() == REGISTERED)
+				std::cout << "Received from " << client->getNickName() << ": " << buffer;
 			try
 			{
 				std::vector<std::string> messages = split(buffer,'\n');
 				for(std::vector <std::string> :: iterator it = messages.begin(); it != messages.end(); ++it)
 				{
 					std::string line = *it;
+					if(line.empty()) continue;
 					if(line[0] == '/')
 					      line.erase(0,1);
 					std::vector <Command> :: iterator cmd = commands.begin();
@@ -357,7 +717,7 @@ void Server::ClientCommunication()
 							if (line.rfind(cmd->label, 0) == 0) 
 							{
 								std::vector <std::string> params = split(line.substr(cmd->label.size() + 1),' ');
-								if (line.find("QUIT") == 0)
+								if (!cmd->label.compare("QUIT"))
 									out = 1;
 								if(cmd->requiredAuthState == UNAUTHENTICATED)
 									cmd->handler(*this, *client, params);
@@ -366,7 +726,7 @@ void Server::ClientCommunication()
 								else if(cmd->requiredAuthState == REGISTERED && client->getState() == REGISTERED)
 									cmd->handler(*this, *client, params);
 								else
-									client->write(":ft_irc.server 451 : You have not registered\r\n ");
+									client->write(":" + this->getServerName() + " 451 : You have not registered\r\n");
 							}
 							++cmd;
 						}
@@ -374,7 +734,7 @@ void Server::ClientCommunication()
 			}
 			catch(const std::exception& e)
 			{
-					std::cerr << e.what() << '\n';
+					std::cerr << "Error processing message: " << e.what() << '\n';
 			}
 		}
 		if (out == 1)
