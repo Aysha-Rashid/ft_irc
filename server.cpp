@@ -109,7 +109,7 @@ void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& par
 
 Server::~Server()
 {
-	std::string quitMsg = "server QUIT :Server shutting down\n";
+    std::string quitMsg = "server QUIT :Server shutting down\n";
 
 	if (!clients.empty())
 	{
@@ -130,12 +130,12 @@ Server::~Server()
 
 size_t Server::getPort(void) const
 {
-	return (this->_port);
+    return (this->_port);
 }
 
 std::string Server::getPassword(void) const
 {
-	return (this->_password);
+    return (this->_password);
 }
 
 // Client* Server::getClientByFd(int client_fd) {
@@ -148,26 +148,26 @@ std::string Server::getPassword(void) const
 
 void Server::portAndPass(const std::string& port, std::string password)
 {
-	if (port.empty() || password.empty())
-		throw std::runtime_error("Empty Argument");
-	for (std::string::const_iterator it = port.begin(); it != port.end(); ++it) {
-		if (!std::isdigit(*it))
-			throw std::runtime_error("Invalid Port");
-	}
-	char *end;
-	this->_port = strtol(port.c_str(), &end, 10);
-	if (this->_port < 0 ||  this->_port > 65535)
-		throw std::runtime_error("Invalid Port");
-	this->_password = password;
+    if (port.empty() || password.empty())
+        throw std::runtime_error("Empty Argument");
+    for (std::string::const_iterator it = port.begin(); it != port.end(); ++it) {
+        if (!std::isdigit(*it))
+            throw std::runtime_error("Invalid Port");
+    }
+    char *end;
+    this->_port = strtol(port.c_str(), &end, 10);
+    if (this->_port < 0 ||  this->_port > 65535)
+        throw std::runtime_error("Invalid Port");
+    this->_password = password;
 }
 
 static void checkError(int result, const char *error, const std::string &errmeg)
 {
-	if (result < 0)
-	{
-		perror(error);
-		throw std::runtime_error(errmeg);
-	}
+    if (result < 0)
+    {
+        perror(error);
+        throw std::runtime_error(errmeg);
+    }
 }
 
 void Server::setFds() {
@@ -203,8 +203,8 @@ void Server::acceptConnection(void)
 		std::string inet_addr = inet_ntoa(client_addr.sin_addr);
 		Client *currentClient = new Client(newClient_fd, inet_addr);
    		currentClient->setSocketFd(newClient_fd);
-		clients.push_back(currentClient);
-	}
+        clients.push_back(currentClient);
+    }
 }
 
 void Server::run(void)
@@ -243,6 +243,7 @@ void    Server::creatingServer(Server &server)
 	server.run();
 }
 
+/*
 int Server::handleAuthentication(std::string message, Client **client) {
 	// if (((*client)->getState() == UNAUTHENTICATED)) {
 	// 	if (message.substr(0, 5) == "PASS ") {
@@ -273,6 +274,7 @@ int Server::handleAuthentication(std::string message, Client **client) {
 	// 	}
 	return 0;
 }
+*/
 
 void Server::disconnected(Client *&client, int socket) {
 	if (client != nullptr) {

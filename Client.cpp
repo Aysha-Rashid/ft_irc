@@ -1,4 +1,6 @@
 # include "Client.hpp"
+# include <stdexcept>
+# include <sys/socket.h>
 
 Client::Client() {}
 

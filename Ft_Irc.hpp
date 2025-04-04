@@ -2,6 +2,7 @@
 #include <poll.h>
 #include <iostream>
 #include <exception>
+#include <stdexcept>
 #include <vector>
 #include <cctype>
 #include <sys/socket.h>
@@ -12,6 +13,7 @@
 #include <fcntl.h>
 #include <vector>
 #include <string>
+#include <cstring>
 #include <signal.h>
 #include <sstream>
 #include <unistd.h>
