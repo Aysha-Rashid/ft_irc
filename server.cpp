@@ -86,11 +86,27 @@ void handlePart(Server &server, Client &client, std::vector<std::string>& params
             continue;
         }
 
+        // Check if the leaving client is an operator
+        bool wasOperator = channel->isOperator(&client);
+        
+        // Remove operator status if the client is an operator
+        if (wasOperator) {
+            channel->removeOperator(&client);
+        }
+
         // Broadcast PART message to all channel members
         channel->broadcast(":" + client.getPrefix() + " PART " + channelName + " :" + reason + "\r\n");
         
         // Remove client from channel
         channel->removeClient(&client);
+
+        // If the leaving client was an operator and there are no other operators left,
+        // promote the first client in the channel to operator
+        if (wasOperator && channel->getOperators().empty() && !channel->getClients().empty()) {
+            Client* newOperator = channel->getClients()[0];
+            channel->addOperator(newOperator);
+            channel->broadcast(":" + server.getServerName() + " MODE " + channelName + " +o " + newOperator->getNickName() + "\r\n");
+        }
         
         // If channel is empty, delete it
         if (channel->getClients().empty()) {
@@ -155,7 +171,7 @@ void handleInvite(Server &server, Client &client, std::vector<std::string>& para
 }
 
 void handleMode(Server &server, Client &client, std::vector<std::string>& params) {
-    if (params.size() < 2) {
+    if (params.empty()) {
         client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " MODE :Not enough parameters\r\n");
         return;
     }
@@ -163,7 +179,7 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
     std::string target = params[0];
     std::string mode = params[1];
 
-    // Channel mode
+    // If target starts with # or &, it's a channel
     if (target[0] == '#' || target[0] == '&') {
         Channel *channel = server.getChannel(target);
         if (!channel) {
@@ -171,6 +187,13 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
             return;
         }
 
+        // Check if client is in the channel first
+        if (!channel->isClientInChannel(&client)) {
+            client.write(":" + server.getServerName() + " 442 " + client.getNickName() + " " + target + " :You're not on that channel\r\n");
+            return;
+        }
+
+        // Then check if they're an operator
         if (!channel->isOperator(&client)) {
             client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + target + " :You're not channel operator\r\n");
             return;

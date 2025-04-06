@@ -39,6 +39,7 @@ public:
     std::vector<std::string> getNickNames() const;
     bool getInviteOnly() const;
     bool getTopicPrivilege() const;
+    std::vector<Client *> getOperators() const;
 
     //setters
     void setChannelKey(const std::string &key);

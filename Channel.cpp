@@ -77,6 +77,17 @@ bool Channel::getTopicPrivilege() const
     return(_topicPrivilege);
 }
 
+std::vector<Client *> Channel::getOperators() const
+{
+    std::vector<Client *> operators;
+    for (std::vector<Client *>::const_iterator it = _clientList.begin(); it != _clientList.end(); ++it) {
+        if (isOperator(*it)) {
+            operators.push_back(*it);
+        }
+    }
+    return operators;
+}
+
 //setters
 void Channel::setChannelKey(const std::string &key)
 {
