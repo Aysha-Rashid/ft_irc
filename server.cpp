@@ -99,14 +99,6 @@ void handlePart(Server &server, Client &client, std::vector<std::string>& params
         
         // Remove client from channel
         channel->removeClient(&client);
-
-        // If the leaving client was an operator and there are no other operators left,
-        // promote the first client in the channel to operator
-        if (wasOperator && channel->getOperators().empty() && !channel->getClients().empty()) {
-            Client* newOperator = channel->getClients()[0];
-            channel->addOperator(newOperator);
-            channel->broadcast(":" + server.getServerName() + " MODE " + channelName + " +o " + newOperator->getNickName() + "\r\n");
-        }
         
         // If channel is empty, delete it
         if (channel->getClients().empty()) {
