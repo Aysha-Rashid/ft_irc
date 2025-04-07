@@ -245,17 +245,30 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
 }
 
 void handlePing(Server &server, Client &client, std::vector<std::string>& params) {
-    std::string token;
+    if (params.empty()) {
+        client.write(":" + server.getServerName() + " 409 " + client.getNickName() + " :No origin specified\r\n");
+        return;
+    }
+    
+    std::string token = params[0];
+    
+    // Reply with PONG message containing the same token
+    client.write(":" + server.getServerName() + " PONG " + server.getServerName() + " :" + token + "\r\n");
+}
+
+void handlePong(Server &server, Client &client, std::vector<std::string>& params) {
+    (void)server; // Unused parameter
     
     if (params.empty()) {
         client.write(":" + server.getServerName() + " 409 " + client.getNickName() + " :No origin specified\r\n");
         return;
     }
     
-    token = params[0];
+    // Update the client's last activity time
+    client.updateLastActivity();
     
-    // Reply with PONG message containing the same token
-    client.write(":" + server.getServerName() + " PONG " + server.getServerName() + " :" + token + "\r\n");
+    // The token in params[0] should match what was sent in the PING
+    // We don't need to do anything else as this just confirms the client is alive
 }
 
 void handleQuit(Server &server, Client &client, std::vector<std::string>& params) {
