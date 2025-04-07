@@ -731,6 +731,8 @@ void Server::ClientCommunication()
 						{
 							if (line.rfind(cmd->label, 0) == 0) 
 							{
+                                if (line.size() == cmd->label.size())
+                                    line += "";
 								std::vector <std::string> params = split(line.substr(cmd->label.size() + 1),' ');
 								if (!cmd->label.compare("QUIT"))
 									out = 1;
