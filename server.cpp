@@ -24,17 +24,17 @@ void handlePass(Server &server, Client &client, std::vector<std::string>& params
  {
 	if(params.empty())
 	{
-		client.write(ERR_NEEDMOREPARAMS);
+		client.write(":" + server.getServerName() + ERR_NEEDMOREPARAMS);
 		return;
 	}
 	if(client.getState() == AUTHENTICATED || client.getState() == REGISTERED)
 	{
-		client.write(ERR_ALREADYREGISTERED);
+		client.write(":" + server.getServerName() + ERR_ALREADYREGISTERED);
 		return;
 	}
 	if(params[0] != server.getPassword())
 	{
-		client.write(ERR_PASSWDMISMATCH);
+		client.write(":" + server.getServerName() + ERR_PASSWDMISMATCH);
 		return;
 	}
 	client.setState(AUTHENTICATED);
@@ -45,12 +45,12 @@ void handleUser(Server &server, Client &client, std::vector<std::string>& params
 	(void) server;
 	if(client.getState() == REGISTERED)
 	{
-		client.write(ERR_ALREADYREGISTERED);
+		client.write(":" + server.getServerName() + ERR_ALREADYREGISTERED);
 		return;
 	}
 	if(params.empty() || params.size() < 4)
 	{
-		client.write(ERR_NEEDMOREPARAMS);
+		client.write(":" + server.getServerName() + ERR_NEEDMOREPARAMS);
 		return;
 	}
 
@@ -715,8 +715,8 @@ void Server::ClientCommunication()
 				continue;
 			}
 			buffer[bytesReceived] = '\0';
-			if (client->getState() == REGISTERED)
-				std::cout << "Received from " << client->getNickName() << ": " << buffer;
+			// if (client->getState() == REGISTERED)
+			// 	std::cout << "Received from " << client->getNickName() << ": " << buffer;
 			try
 			{
 				std::vector<std::string> messages = split(buffer,'\n');
@@ -742,10 +742,13 @@ void Server::ClientCommunication()
 									cmd->handler(*this, *client, params);
 								else
 									client->write(":" + this->getServerName() + " 451 : You have not registered\r\n");
+                                break ;
 							}
 							++cmd;
 						}
-				}
+                        if (cmd == commands.end())
+                            client->write(":" + this->getServerName() + " 421 " + client->getNickName() + " " + line + " :Unknown command\r\n ");
+                    }
 			}
 			catch(const std::exception& e)
 			{

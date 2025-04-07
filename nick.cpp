@@ -25,15 +25,15 @@ void handleNick(Server &server, Client &client, std::vector<std::string>& params
 	{
 		
 		if(client.getNickName().empty())
-			client.write(ERR_NONICKNAMEGIVEN);
+			client.write(":" + server.getServerName() + ERR_NONICKNAMEGIVEN);
 		else
-			client.write("431" + client.getNickName() + ":No nickname given\r\n");	
+			client.write(":" + server.getServerName() + " 431" + client.getNickName() + ":No nickname given\r\n");	
 		return;
 	}
 	if (!isValidNickName(params[0]))
-		(client).write(ERR_ERRONEUSNICKNAME);
+		(client).write(":" + server.getServerName() + ERR_ERRONEUSNICKNAME);
 	else if (isNickNameInUse(server, params[0]))
-		(client).write(ERR_NICKNAMEINUSE);
+		(client).write(":" + server.getServerName() + ERR_NICKNAMEINUSE);
 	else {
 		(client).setNickName(params[0]);
 		}
