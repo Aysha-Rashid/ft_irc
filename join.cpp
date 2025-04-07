@@ -73,7 +73,7 @@ void handleJoin(Server &server, Client &client, std::vector<std::string>  &param
         }
         if(channel->isClientInChannel(&client))
           {
-            client.write(":" + server.getServerName() + " 443 " + client.getNickName() + " " + channel->getName() + "  :is already on channel.\r\n");
+            client.write(":" + server.getServerName() + " 443 " + client.getNickName() + " " + channel->getName() + " :is already on channel.\r\n");
             return;
           }
         if(channel->getUserLimit() > 0 && channel->getClients().size() > channel->getUserLimit() )

@@ -214,42 +214,42 @@ void    Server::creatingServer(Server &server)
 	server.run();
 }
 
-int Server::handleAuthentication(std::string message, Client **client) {
-	if (((*client)->getState() == UNAUTHENTICATED)) {
-		if (message.substr(0, 5) == "PASS ") {
-			if (message.substr(5) == this->getPassword()) {
-				(*client)->setState(AUTHENTICATED);
-			} else {
-				(*client)->write("Incorrect Password\r\n");
-				return 1;
-			}
-		}
-	}
-	if ((*client)->getState() == AUTHENTICATED) {
-		if (message.substr(0, 5) == "NICK ") {
-			std::string nickname = message.substr(5);
-			nick(this, *client, nickname);
-		}
-		if (message.substr(0, 5) == "USER ") {
-			std::stringstream ss(message.substr(5));
-			std::string username, realName, permission;
-			char mode;
-			ss >> username >> mode >> permission >> realName;
-			if (ss.fail() || username.empty() || permission.empty() || realName.empty())
-				(*client)->write(ERR_NEEDMOREPARAMS);
-			else {
-				if (mode > '8' && mode < '0')  
-					(*client)->write("Invalid arguments\r\n");
-				else {
-					(*client)->setUserName(username);
-					(*client)->setRealName(realName);
-					//(*client)->setWaitingForUsername(true);
-				}
-			}
-		}
-	}
-	return 0;
-}
+// int Server::handleAuthentication(std::string message, Client **client) {
+// 	if (((*client)->getState() == UNAUTHENTICATED)) {
+// 		if (message.substr(0, 5) == "PASS ") {
+// 			if (message.substr(5) == this->getPassword()) {
+// 				(*client)->setState(AUTHENTICATED);
+// 			} else {
+// 				(*client)->write("Incorrect Password\r\n");
+// 				return 1;
+// 			}
+// 		}
+// 	}
+// 	if ((*client)->getState() == AUTHENTICATED) {
+// 		if (message.substr(0, 5) == "NICK ") {
+// 			std::string nickname = message.substr(5);
+// 			nick(this, *client, nickname);
+// 		}
+// 		if (message.substr(0, 5) == "USER ") {
+// 			std::stringstream ss(message.substr(5));
+// 			std::string username, realName, permission;
+// 			char mode;
+// 			ss >> username >> mode >> permission >> realName;
+// 			if (ss.fail() || username.empty() || permission.empty() || realName.empty())
+// 				(*client)->write(ERR_NEEDMOREPARAMS);
+// 			else {
+// 				if (mode > '8' && mode < '0')  
+// 					(*client)->write("Invalid arguments\r\n");
+// 				else {
+// 					(*client)->setUserName(username);
+// 					(*client)->setRealName(realName);
+// 					//(*client)->setWaitingForUsername(true);
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return 0;
+// }
 
 void Server::disconnected(Client *&client, int socket) {
 	if (client != nullptr) {
