@@ -14,8 +14,8 @@ Server::Server(std::string name) : _serverName(name) {
 	commands.push_back(Command("WHO", handleWho, REGISTERED)); //Implemented
 	commands.push_back(Command("KICK", handleKick, REGISTERED)); //Not implemented
 	commands.push_back(Command("PRIVMSG", handlePrivMsg, REGISTERED)); //Implemented
+	commands.push_back(Command("PONG", handlePong, REGISTERED)); //Not implemented
 	// commands.push_back(Command("CAP", handleCap, UNAUTHENTICATED)); //Not implemented
-	// commands.push_back(Command("PONG", handlePong, UNAUTHENTICATED)); //Not implemented
 }
 
 
