@@ -29,12 +29,13 @@ private:
 public:
     Client();  
     Client(const Client &other);
-    Client &operator = (const Client &other);
+    Client &operator =(const Client &other);
     Client(int fd, std::string &ip);
     ~Client();
   
     //setters
     void    setSocketFd(int socketFd);
+    void    setIpAddress(std::string _ipAddress);
     void    setNickName(std::string &nickname);
     void    setUserName(std::string &username);
     void    setRealName(std::string &realname);

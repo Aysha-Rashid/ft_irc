@@ -164,6 +164,16 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
         client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " MODE :Not enough parameters\r\n");
         return;
     }
+    if (params.size() == 1) {
+        Channel *channel = server.getChannel(params[0]);
+        if (channel) {
+            std::string modes = "+"; // Example: could add logic to build mode string
+            if (channel->getInviteOnly()) modes += "i";
+            client.write(":" + server.getServerName() + " 324 " + client.getNickName() + " " + channel->getName() + " " + modes + "\r\n");
+        }
+        return;
+    }
+    
 
     std::string target = params[0];
     std::string mode = params[1];
@@ -183,7 +193,6 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
         }
 
         // Then check if they're an operator
-        std::cout << "Are you coming here?\n";
         if (!channel->isOperator(&client)) {
             client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + target + " :You're not channel operator\r\n");
             return;
