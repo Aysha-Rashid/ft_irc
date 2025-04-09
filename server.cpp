@@ -183,6 +183,7 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
         }
 
         // Then check if they're an operator
+        std::cout << "Are you coming here?\n";
         if (!channel->isOperator(&client)) {
             client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + target + " :You're not channel operator\r\n");
             return;
@@ -241,15 +242,18 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
     }
 }
 void handlePing(Server &server, Client &client, std::vector<std::string>& params) {
+    std::string msg;
     if (params.empty()) {
-        client.write(":" + server.getServerName() + " 409 " + client.getNickName() + " :No origin specified\r\n");
+        msg = ":" + server.getServerName() + " 409 " + client.getNickName() + " :No origin specified\r\n";
+        client.write(msg);
         return;
     }
     
     std::string token = params[0];
     
     // Reply with PONG message containing the same token
-    client.write(":" + server.getServerName() + " PONG " + server.getServerName() + " :" + token + "\r\n");
+    msg = ":" + server.getServerName() + " PONG " + server.getServerName() + " :" + token + "\r\n";
+    client.write(msg);
 }
 void handlePong(Server &server, Client &client, std::vector<std::string>& params) {    
     if (params.empty()) {
