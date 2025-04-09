@@ -1,11 +1,12 @@
 # include "Client.hpp"
 # include <stdexcept>
 # include <sys/socket.h>
+# include <iostream>
+# include <ctime>
 
-Client::Client() {}
+Client::Client() : _fd(-1), _state(UNAUTHENTICATED), _channelCount(0), _lastActivity(time(NULL)) {}
 
-Client::Client(int fd,std::string &ip) 
-    :_fd(fd), _ipAddress(ip),_channelCount(0),_state(UNAUTHENTICATED) {}
+Client::Client(int fd, std::string &ip) : _fd(fd), _ipAddress(ip), _state(UNAUTHENTICATED), _channelCount(0), _lastActivity(time(NULL)) {}
 
 Client::Client(const Client &other)
 {
@@ -107,11 +108,11 @@ void    Client::setState(clientState state)
 //member functions
 void Client::write(const   std::string msg)    const
 {
+   if (this->getState() == REGISTERED)
+       std::cout << this->getNickName() << ": " << msg;
    if(send(_fd, msg.c_str(), msg.size(), 0) < 0)
          throw std::runtime_error("Failed to send message.");
 }
-
-
 
 void Client::incrementChannelCount(void)
 {
@@ -121,4 +122,20 @@ void Client::incrementChannelCount(void)
 void Client::decrementChannelCount(void)
 {
     _channelCount--;
+}
+
+void Client::updateLastActivity()
+{
+    _lastActivity = time(NULL);
+}
+
+bool Client::isInactive(time_t timeout) const
+{
+    time_t currentTime = time(NULL);
+    return (currentTime - _lastActivity) > timeout;
+}
+
+time_t Client::getLastActivity() const
+{
+    return _lastActivity;
 }

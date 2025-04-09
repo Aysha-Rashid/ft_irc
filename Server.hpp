@@ -7,12 +7,12 @@
 # include "Client.hpp"
 #include <map>
 
-#define ERR_NONICKNAMEGIVEN std::string ("431 :No nickname given\r\n")
-#define ERR_ERRONEUSNICKNAME std::string ("432 :Erroneous Nickname\r\n")
-#define ERR_NICKNAMEINUSE std::string ("433 :The requested nickname is already in use by another client\r\n")
-#define ERR_NEEDMOREPARAMS std::string ("461 :Not enough parameters\r\n")
+// #define ERR_NONICKNAMEGIVEN std::string ("431 :No nickname given\r\n")
+// #define ERR_ERRONEUSNICKNAME std::string ("432 :Erroneous Nickname\r\n")
+// #define ERR_NICKNAMEINUSE std::string ("433 :The requested nickname is already in use by another client\r\n")
+// #define ERR_NEEDMOREPARAMS std::string ("461 :Not enough parameters\r\n")
 
-extern bool running;
+// extern bool running;
 
 // void handlePass(int client_fd, std::vector<std::string> param);
 // void handleNick(int client_fd, std::vector<std::string> param);

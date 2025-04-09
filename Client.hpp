@@ -3,6 +3,7 @@
 
 # include <sys/socket.h>
 # include <string>
+# include <time.h>
 
 enum    clientState
 {   
@@ -21,6 +22,7 @@ private:
     std::string _realname;
     clientState  _state;
     int _channelCount;
+    time_t _lastActivity;  // Timestamp of last activity
     
     
 
@@ -37,6 +39,8 @@ public:
     void    setUserName(std::string &username);
     void    setRealName(std::string &realname);
     void    setState(clientState state);
+    void    updateLastActivity();  // Update last activity timestamp
+    bool    isInactive(time_t timeout) const;  // Check if client has been inactive too long
 
     //getters
     int getSocketFd(void) const;
@@ -47,6 +51,7 @@ public:
     std::string getPrefix(void)   const;
     clientState getState(void) const;
     int getChannelCount(void)  const;
+    time_t getLastActivity(void) const;  // Get last activity timestamp
 
     //member    functions
     void    write(const   std::string msg)    const;
