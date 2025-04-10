@@ -250,6 +250,7 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
         }
     }
 }
+
 void handlePing(Server &server, Client &client, std::vector<std::string>& params) {
     std::string msg;
     if (params.empty()) {
@@ -294,6 +295,7 @@ void handleQuit(Server &server, Client &client, std::vector<std::string>& params
 	}
 	std::cout << ": "+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n";
 }
+
 void handleWho(Server &server, Client &client, std::vector<std::string>& params) {
 	if (params.empty()) {
         client.write(":" + server.getServerName() + " 461 " + client.getNickName() + " WHO :Not enough parameters\r\n");
@@ -482,17 +484,9 @@ void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& par
             client.write(":" + server.getServerName() + " 401 " + client.getNickName() + " " + target + " :No such nick\r\n");
             return;
         }
-
-        // Send message to target client
         targetClient->write(":" + client.getPrefix() + " PRIVMSG " + target + " :" + message + "\r\n");
     }
 }
-// void handleCap(Server *server, int client_fd, std::vector<std::string>& params) {
-//     // Function logic
-// }
-// void handlePong(int client_fd, std::vector<std::string>& params) {
-//     // Function logic
-// }
 
 Server::~Server()
 {
@@ -524,14 +518,6 @@ std::string Server::getPassword(void) const
 {
     return (this->_password);
 }
-
-// Client* Server::getClientByFd(int client_fd) {
-// 	for (size_t i = 0; i < clients.size(); i++) {
-// 		if (clients[i]->getSocketFd() == client_fd)
-// 			return clients[i];
-// 	}
-// 	return NULL;
-// }
 
 void Server::portAndPass(const std::string& port, std::string password)
 {
@@ -601,7 +587,6 @@ void Server::run(void)
 		this->setFds();
 		int activity = select(_maxfd + 1, &_readfds, NULL, NULL, NULL);
 		if (activity < 0) {
-			std::cerr << "Error in select" << std::endl;
 			continue;
 		}
 		if (FD_ISSET(_socketFd, &_readfds))
@@ -615,7 +600,6 @@ void    Server::creatingServer(Server &server)
 	int	sockOpt = 1;
 
 	_address.sin_family = AF_INET;
-	// INADDR_ANY is a special IP address that tells the socket to listen on all available network interfaces.
 	_address.sin_addr.s_addr = INADDR_ANY;
 	_address.sin_port = htons(_port);
 	_addrlen = sizeof(_address);
@@ -626,42 +610,9 @@ void    Server::creatingServer(Server &server)
 	checkError(bind(_socketFd, (struct sockaddr *)&_address, _addrlen), "bind failed","Error setting socket flags"); // binding to the socket
 	checkError(listen(_socketFd, 500), "listen", "Error: Failed to start listening for incoming connections"); // letting all the clients know that its available for connection
 	std::cout << "Server started and listening for incoming connections on port " << _port << std::endl;
-	// waiting for client connection
 	server.run();
 }
 
-/*
-int Server::handleAuthentication(std::string message, Client **client) {
-	// if (((*client)->getState() == UNAUTHENTICATED)) {
-	// 	if (message.substr(0, 5) == "PASS ") {
-	// 		if (message.substr(5) == this->getPassword()) {
-	// 			(*client)->setState(AUTHENTICATED);
-	// 		} else {
-	// 			(*client)->write("Incorrect Password\r\n");
-	// 			return 1;
-	// 		}
-	// 	}
-	// }
-	// if (message.substr(0, 5) == "USER ") {
-	// 		std::stringstream ss(message.substr(5));
-	// 		std::string username, realName, permission;
-	// 		char mode;
-	// 		ss >> username >> mode >> permission >> realName;
-	// 		if (ss.fail() || username.empty() || permission.empty() || realName.empty())
-	// 			(*client)->write(ERR_NEEDMOREPARAMS);
-	// 		else {
-	// 			if (mode > '8' && mode < '0')  
-	// 				(*client)->write("Invalid arguments\r\n");
-	// 			else {
-	// 				(*client)->setUserName(username);
-	// 				(*client)->setRealName(realName);
-	// 				//(*client)->setWaitingForUsername(true);
-	// 			}
-	// 		}
-	// 	}
-	return 0;
-}
-*/
 
 void Server::disconnected(Client *&client, int socket) {
 	if (client != nullptr) {
@@ -673,23 +624,6 @@ void Server::disconnected(Client *&client, int socket) {
 		out = true;
 	}
 }
-
-// int Server::Commands(Client **client, int socket, std::string commandStr)
-// {
-// 	for (size_t i = 0; i < commands.size(); i++) {
-// 		// if (commandStr.fi)
-// 		if (commandStr.substr(0, commands[i].label.size()) == commands[i].label) {
-// 			std::vector<std::string> params = split(commandStr.substr(commands[i].label.size() + 1), ' ');
-// 			if ((*client)->getState() >= commands[i].requiredAuthState)
-// 			{
-// 				if (commandStr.substr(0, 5) == "JOIN ")
-// 					commands[i].handler(this, *client, params);
-// 				return 0;
-// 			}
-// 		}
-// 	}
-// 	return 1;
-// }
 
 void   Server::disconnectClient(int socket, const std::string reason)
 {
@@ -720,48 +654,66 @@ void   Server::disconnectClient(int socket, const std::string reason)
 
 void Server::ClientCommunication()
  {
-	out = 0;
-	for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end();)
+     for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end();)
 	 {
+        out = 0;
 		Client* client = *it;
      	if (FD_ISSET(client->getSocketFd(), &getReadfds())) 
 		{
 			char buffer[1024];
 			memset(buffer,0, sizeof(buffer));
 			ssize_t bytesReceived = recv(client->getSocketFd(), buffer, sizeof(buffer) - 1, 0);
+			if (bytesReceived <= 0) {
+				std::cout << "Client disconnected or error receiving data" << std::endl;
+				disconnectClient(client->getSocketFd(), "Client disconnected");
+                out = 1;
+				continue;
+			}
 			buffer[bytesReceived] = '\0';
 			try
 			{
-				std::vector<std::string> messages = split(buffer,'\n');
-				for(std::vector <std::string> :: iterator it = messages.begin(); it != messages.end(); ++it)
-				{
-					std::string line = *it;
-					if(line[0] == '/')
-					      line.erase(0,1);
-					std::vector <Command> :: iterator cmd = commands.begin();
-						while(cmd != commands.end())
-						{
-							if (line.rfind(cmd->label, 0) == 0) 
-							{
-								std::vector <std::string> params = split(line.substr(cmd->label.size() + 1),' ');
-								if (line.find("QUIT") == 0)
-									out = 1;
-								if(cmd->requiredAuthState == UNAUTHENTICATED)
-									cmd->handler(*this, *client, params);
-								else if(cmd->requiredAuthState == AUTHENTICATED && client->getState() != UNAUTHENTICATED)
-									cmd->handler(*this, *client, params);
-								else if(cmd->requiredAuthState == REGISTERED && client->getState() == REGISTERED)
-									cmd->handler(*this, *client, params);
-								else
-									client->write(":ft_irc.server 451 : You have not registered\r\n ");
-							}
-							++cmd;
-						}
-				}
+                // client->appendToBuffer(std::string(buffer, bytesReceived));
+                // std::string& fullBuffer = client->getReceiveBuffer();
+                std::string line(buffer);
+                client->_receiveBuffer += line;
+                size_t pos;
+                while ((pos = client->_receiveBuffer.find('\n')) != std::string::npos && out == 0) {
+                    line = client->_receiveBuffer.substr(0, pos);
+                    if (!line.empty() && line[line.size() - 1] == '\r')
+                        line = line.substr(0, line.size() - 1);
+                    if (line[0] == '/')
+                    line.erase(0, 1);
+                    client->_receiveBuffer.erase(0, pos + 1);
+                    std::vector<Command>::iterator cmd = commands.begin();
+                    while (cmd != commands.end()) {
+                        if (line.rfind(cmd->label, 0) == 0) {
+                            if (line.size() == cmd->label.size())
+                                line += "";
+                            std::vector<std::string> params = split(line.substr(cmd->label.size() + 1), ' ');
+                            if (!cmd->label.compare("QUIT"))
+                                out = 1;
+                            if (cmd->requiredAuthState == UNAUTHENTICATED)
+                                cmd->handler(*this, *client, params);
+                            else if (cmd->requiredAuthState == AUTHENTICATED && client->getState() != UNAUTHENTICATED)
+                                cmd->handler(*this, *client, params);
+                            else if (cmd->requiredAuthState == REGISTERED && client->getState() == REGISTERED)
+                                cmd->handler(*this, *client, params);
+                            else
+                                client->write(":" + this->getServerName() + " 451 : You have not registered\r\n");
+                            break;
+                        }
+                        ++cmd;
+                    }
+                    if (cmd == commands.end() && client->getState() == REGISTERED)
+                    {
+                        std::cout << "commands are " << line << "\n";
+                        client->write(":" + this->getServerName() + " 421 " + client->getNickName() + " " + line + ":Unknown command\r\n");
+                    }
+                }
 			}
 			catch(const std::exception& e)
 			{
-					std::cerr << e.what() << '\n';
+					std::cerr << "Error processing message: " << e.what() << '\n';
 			}
 		}
 		if (out == 1)
@@ -770,6 +722,70 @@ void Server::ClientCommunication()
 			it++;
 	}
  }
+
+// void Server::ClientCommunication()
+//  {
+// 	out = 0;
+// 	for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end();)
+// 	 {
+// 		Client* client = *it;
+//      	if (FD_ISSET(client->getSocketFd(), &getReadfds())) 
+// 		{
+// 			char buffer[1024];
+// 			memset(buffer,0, sizeof(buffer));
+// 			ssize_t bytesReceived = recv(client->getSocketFd(), buffer, sizeof(buffer) - 1, 0);
+// 			if (bytesReceived <= 0) {
+// 				std::cout << "Client disconnected or error receiving data" << std::endl;
+// 				disconnectClient(client->getSocketFd(), "Client disconnected");
+// 				continue;
+// 			}
+// 			buffer[bytesReceived] = '\0';
+// 			try
+// 			{
+// 				std::vector<std::string> messages = split(buffer,'\n');
+// 				for(std::vector <std::string> :: iterator it = messages.begin(); it != messages.end(); ++it)
+// 				{
+// 					std::string line = *it;
+// 					if(line.empty()) continue;
+// 					if(line[0] == '/')
+// 					      line.erase(0,1);
+// 					std::vector <Command> :: iterator cmd = commands.begin();
+// 						while(cmd != commands.end())
+// 						{
+// 							if (line.rfind(cmd->label, 0) == 0) 
+// 							{
+//                                 if (line.size() == cmd->label.size())
+//                                     line += "";
+// 								std::vector <std::string> params = split(line.substr(cmd->label.size() + 1),' ');
+// 								if (!cmd->label.compare("QUIT"))
+// 									out = 1;
+// 								if(cmd->requiredAuthState == UNAUTHENTICATED)
+// 									cmd->handler(*this, *client, params);
+// 								else if(cmd->requiredAuthState == AUTHENTICATED && client->getState() != UNAUTHENTICATED)
+// 									cmd->handler(*this, *client, params);
+// 								else if(cmd->requiredAuthState == REGISTERED && client->getState() == REGISTERED)
+// 									cmd->handler(*this, *client, params);
+// 								else
+// 									client->write(":" + this->getServerName() + " 451 : You have not registered\r\n");
+//                                 break ;
+// 							}
+// 							++cmd;
+// 						}
+//                         if (cmd == commands.end())
+//                             client->write(":" + this->getServerName() + " 421 " + client->getNickName() + " " + line + ":Unknown command\r\n");
+//                     }
+// 			}
+// 			catch(const std::exception& e)
+// 			{
+// 					std::cerr << "Error processing message: " << e.what() << '\n';
+// 			}
+// 		}
+// 		if (out == 1)
+// 			continue;
+// 		else
+// 			it++;
+// 	}
+//  }
 
 void Server::registerChannel(Channel *channel)
 {

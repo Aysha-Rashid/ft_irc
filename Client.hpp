@@ -24,9 +24,8 @@ private:
     int _channelCount;
     time_t _lastActivity;  // Timestamp of last activity
     
-    
-
-public:
+    public:
+    std::string _receiveBuffer;
     Client();  
     Client(const Client &other);
     Client &operator =(const Client &other);
@@ -58,6 +57,9 @@ public:
     void    write(const   std::string msg)    const;
     void incrementChannelCount(void);
     void decrementChannelCount(void);
+    std::string&    getReceiveBuffer() { return _receiveBuffer; }
+    void            appendToBuffer(const std::string& data) { _receiveBuffer += data; }
+    void            clearBufferUpTo(size_t pos) { _receiveBuffer.erase(0, pos); }
     
 };
 

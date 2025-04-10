@@ -60,26 +60,26 @@ class Server
 
     public:
         std::vector<Client *> clients;
-        std::vector<Command> commands;  // ✅ Replace `map` with `vector`
+        std::vector<Command> commands;
         std::map<std::string, Channel *> channels;
         Server(std::string name);
         ~Server();
-        size_t      getPort(void) const;
-        std::string getPassword(void) const;
-        std::string getServerName(void) const { return (_serverName);};
-        fd_set      &getReadfds(void) { return(_readfds);};
-        int         getSocket(void) const {return (_socketFd);};
-        void        portAndPass(const std::string &port, std::string password);
-        void        creatingServer(Server &server);
-        void        acceptConnection(void);
-        void        run(void);
-        void        setFds(void);
-        void        ClientCommunication(void);
-        void        disconnected(Client *&client, int socket);
-        void        registerChannel(Channel *channel);
-        Channel     *getChannel(std::string &name);
-        void        deleteChannel(Channel *Channel);
-        void        disconnectClient(int socket, const std::string reason);
+        size_t          getPort(void) const;
+        std::string     getPassword(void) const;
+        std::string     getServerName(void) const { return (_serverName);};
+        fd_set          &getReadfds(void) { return(_readfds);};
+        int             getSocket(void) const {return (_socketFd);};
+        void            portAndPass(const std::string &port, std::string password);
+        void            creatingServer(Server &server);
+        void            acceptConnection(void);
+        void            run(void);
+        void            setFds(void);
+        void            ClientCommunication(void);
+        void            disconnected(Client *&client, int socket);
+        void            registerChannel(Channel *channel);
+        Channel         *getChannel(std::string &name);
+        void            deleteChannel(Channel *Channel);
+        void            disconnectClient(int socket, const std::string reason);
 };
 
 # endif

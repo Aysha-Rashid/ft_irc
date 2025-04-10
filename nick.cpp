@@ -31,10 +31,10 @@ void handleNick(Server &server, Client &client, std::vector<std::string>& params
 		return;
 	}
 	if (!isValidNickName(params[0]))
-		(client).write(ERR_ERRONEUSNICKNAME);
+		client.write(":" + server.getServerName() + " 432 " + params[0] + " " + params[0] + " :Erroneous nickname\r\n");
 	else if (isNickNameInUse(server, params[0]))
-		(client).write(ERR_NICKNAMEINUSE);
+		client.write(":" + server.getServerName() + " 433 " + params[0] + " " + params[0] + " :Nickname is already in use\r\n");
 	else {
-		(client).setNickName(params[0]);
+		client.setNickName(params[0]);
 		}
 }
