@@ -35,6 +35,12 @@ void handleNick(Server &server, Client &client, std::vector<std::string>& params
 	else if (isNickNameInUse(server, params[0]))
 		client.write(":" + server.getServerName() + " 433 " + params[0] + " " + params[0] + " :Nickname is already in use\r\n");
 	else {
-		client.setNickName(params[0]);
+			client.setNickName(params[0]);
+			if (!client.getUserName().empty())
+			{
+				client.setState(REGISTERED);
+				client.write(":" + server.getServerName() + " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" ,to the IRC server\r\n");	
+				std::cout << " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
+			}
 		}
 }

@@ -56,10 +56,12 @@ void handleUser(Server &server, Client &client, std::vector<std::string>& params
 	client.setUserName(params[0]);
 	client.setRealName(params[3]);
 	if(!client.getNickName().empty())
+    {
 		client.setState(REGISTERED);
-	client.write(":" + server.getServerName() + " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" ,to the IRC server\r\n");	
-	std::cout << " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
-	}
+        client.write(":" + server.getServerName() + " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" ,to the IRC server\r\n");	
+        std::cout << " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
+    }
+}
 
 
 void handlePart(Server &server, Client &client, std::vector<std::string>& params) {
@@ -664,16 +666,13 @@ void Server::ClientCommunication()
 			memset(buffer,0, sizeof(buffer));
 			ssize_t bytesReceived = recv(client->getSocketFd(), buffer, sizeof(buffer) - 1, 0);
 			if (bytesReceived <= 0) {
-				std::cout << "Client disconnected or error receiving data" << std::endl;
-				disconnectClient(client->getSocketFd(), "Client disconnected");
-                out = 1;
-				continue;
-			}
+                disconnectClient(client->getSocketFd(), "QUIT");
+                it = clients.erase(it);
+                continue;
+            }            
 			buffer[bytesReceived] = '\0';
 			try
 			{
-                // client->appendToBuffer(std::string(buffer, bytesReceived));
-                // std::string& fullBuffer = client->getReceiveBuffer();
                 std::string line(buffer);
                 client->_receiveBuffer += line;
                 size_t pos;
@@ -713,7 +712,7 @@ void Server::ClientCommunication()
 			}
 			catch(const std::exception& e)
 			{
-					std::cerr << "Error processing message: " << e.what() << '\n';
+				std::cerr << "Error processing message: " << e.what() << '\n';
 			}
 		}
 		if (out == 1)
@@ -721,71 +720,7 @@ void Server::ClientCommunication()
 		else
 			it++;
 	}
- }
-
-// void Server::ClientCommunication()
-//  {
-// 	out = 0;
-// 	for (std::vector<Client *>::iterator it = clients.begin(); it != clients.end();)
-// 	 {
-// 		Client* client = *it;
-//      	if (FD_ISSET(client->getSocketFd(), &getReadfds())) 
-// 		{
-// 			char buffer[1024];
-// 			memset(buffer,0, sizeof(buffer));
-// 			ssize_t bytesReceived = recv(client->getSocketFd(), buffer, sizeof(buffer) - 1, 0);
-// 			if (bytesReceived <= 0) {
-// 				std::cout << "Client disconnected or error receiving data" << std::endl;
-// 				disconnectClient(client->getSocketFd(), "Client disconnected");
-// 				continue;
-// 			}
-// 			buffer[bytesReceived] = '\0';
-// 			try
-// 			{
-// 				std::vector<std::string> messages = split(buffer,'\n');
-// 				for(std::vector <std::string> :: iterator it = messages.begin(); it != messages.end(); ++it)
-// 				{
-// 					std::string line = *it;
-// 					if(line.empty()) continue;
-// 					if(line[0] == '/')
-// 					      line.erase(0,1);
-// 					std::vector <Command> :: iterator cmd = commands.begin();
-// 						while(cmd != commands.end())
-// 						{
-// 							if (line.rfind(cmd->label, 0) == 0) 
-// 							{
-//                                 if (line.size() == cmd->label.size())
-//                                     line += "";
-// 								std::vector <std::string> params = split(line.substr(cmd->label.size() + 1),' ');
-// 								if (!cmd->label.compare("QUIT"))
-// 									out = 1;
-// 								if(cmd->requiredAuthState == UNAUTHENTICATED)
-// 									cmd->handler(*this, *client, params);
-// 								else if(cmd->requiredAuthState == AUTHENTICATED && client->getState() != UNAUTHENTICATED)
-// 									cmd->handler(*this, *client, params);
-// 								else if(cmd->requiredAuthState == REGISTERED && client->getState() == REGISTERED)
-// 									cmd->handler(*this, *client, params);
-// 								else
-// 									client->write(":" + this->getServerName() + " 451 : You have not registered\r\n");
-//                                 break ;
-// 							}
-// 							++cmd;
-// 						}
-//                         if (cmd == commands.end())
-//                             client->write(":" + this->getServerName() + " 421 " + client->getNickName() + " " + line + ":Unknown command\r\n");
-//                     }
-// 			}
-// 			catch(const std::exception& e)
-// 			{
-// 					std::cerr << "Error processing message: " << e.what() << '\n';
-// 			}
-// 		}
-// 		if (out == 1)
-// 			continue;
-// 		else
-// 			it++;
-// 	}
-//  }
+}
 
 void Server::registerChannel(Channel *channel)
 {

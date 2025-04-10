@@ -57,10 +57,6 @@ private:
     void    write(const   std::string msg)    const;
     void incrementChannelCount(void);
     void decrementChannelCount(void);
-    std::string&    getReceiveBuffer() { return _receiveBuffer; }
-    void            appendToBuffer(const std::string& data) { _receiveBuffer += data; }
-    void            clearBufferUpTo(size_t pos) { _receiveBuffer.erase(0, pos); }
-    
 };
 
 # endif
