@@ -58,7 +58,6 @@ public:
     bool isOperator(const Client *client) const;
     bool isInvited(const Client *client);
     bool isClientInChannel(const Client *client) const;
-
 };
 
 # endif

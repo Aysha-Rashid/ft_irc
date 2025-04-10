@@ -170,7 +170,8 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
         Channel *channel = server.getChannel(params[0]);
         if (channel) {
             std::string modes = "+"; // Example: could add logic to build mode string
-            if (channel->getInviteOnly()) modes += "i";
+            if (channel->getInviteOnly()) 
+                modes += "i";
             client.write(":" + server.getServerName() + " 324 " + client.getNickName() + " " + channel->getName() + " " + modes + "\r\n");
         }
         return;

@@ -80,6 +80,7 @@ class Server
         Channel         *getChannel(std::string &name);
         void            deleteChannel(Channel *Channel);
         void            disconnectClient(int socket, const std::string reason);
+        std::vector<Channel *> getChannelsByClient(Client *client);
 };
 
 # endif
