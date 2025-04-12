@@ -1,9 +1,9 @@
 # include "Channel.hpp"
 
-Channel::Channel() :_inviteOnly(false), _userLimit(0), _topic("") {}
+Channel::Channel() :_topic("") , _userLimit(0), _inviteOnly(false){}
 
 Channel::Channel(std::string name, std::string password) 
-    :_name(name), _channelKey(password), _inviteOnly(false), _userLimit(0), _topic("") {}
+    :_name(name), _channelKey(password), _topic("") , _userLimit(0), _inviteOnly(false){}
 
 Channel::Channel(const Channel &other) 
 {

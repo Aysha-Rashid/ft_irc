@@ -13,8 +13,8 @@ class Channel
 {
 private:
     std::string _name;
-    std::string _topic;
     std::string _channelKey;
+    std::string _topic;
     size_t _userLimit;
     std::vector<Client *> _clientList;
     std::map<std::string, bool> _operators;

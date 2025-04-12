@@ -118,7 +118,7 @@ void handleInvite(Server &server, Client &client, std::vector<std::string>& para
     std::string channelName = params[1];
 
     // Find target client
-    Client *targetClient = nullptr;
+    Client *targetClient = NULL;
     for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
         if ((*it)->getNickName() == targetNick) {
             targetClient = *it;
@@ -211,7 +211,7 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
                         break;
                     case 'o': // Give operator status
                         if (params.size() > 2) {
-                            Client *targetClient = nullptr;
+                            Client *targetClient = NULL;
                             for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
                                 if ((*it)->getNickName() == params[2]) {
                                     targetClient = *it;
@@ -235,7 +235,7 @@ void handleMode(Server &server, Client &client, std::vector<std::string>& params
                         break;
                     case 'o': // Remove operator status
                         if (params.size() > 2) {
-                            Client *targetClient = nullptr;
+                            Client *targetClient = NULL;
                             for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
                                 if ((*it)->getNickName() == params[2]) {
                                     targetClient = *it;
@@ -285,9 +285,11 @@ void handlePong(Server &server, Client &client, std::vector<std::string>& params
 void handleQuit(Server &server, Client &client, std::vector<std::string>& params) {
 	std::string reason = "Leaving";
 
+    (void)params;
 	if(client.getState() == REGISTERED)
 	{
 		server.disconnectClient(client.getSocketFd(),reason);
+        return ;
 	}
 	else
 	{
@@ -417,7 +419,7 @@ void handleKick(Server &server, Client &client, std::vector<std::string>& params
     }
 
     // Find target client
-    Client *targetClient = nullptr;
+    Client *targetClient = NULL;
     for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
         if ((*it)->getNickName() == targetNick) {
             targetClient = *it;
@@ -475,7 +477,7 @@ void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& par
         channel->broadcast(":" + client.getPrefix() + " PRIVMSG " + target + " :" + message + "\r\n", &client);
     } else {
         // Private message to a user
-        Client *targetClient = nullptr;
+        Client *targetClient = NULL;
         for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
             if ((*it)->getNickName() == target) {
                 targetClient = *it;
@@ -500,15 +502,20 @@ Server::~Server()
 		for (size_t i = 0; i < clients.size(); i++) {
 			int clientSocket = clients[i]->getSocketFd();
 			
+            if (clients[i]->getChannelCount() > 0)
+            {
+                for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); it++)
+                    delete it->second;
+                channels.clear();
+            }
 			if (clientSocket > 0) {
 				send(clientSocket, quitMsg.c_str(), quitMsg.length(), 0);
 				close(clientSocket);
 			}
-
 			delete clients[i];
 		}
+        clients.clear();
 	}
-	clients.clear();
 	std::cout << "server QUIT :Server shutting down\r\n";
 }
 
@@ -560,14 +567,6 @@ void Server::setFds() {
 	}
 }
 
-static void signal_handler(int signal)
-{
-	if (signal == SIGINT)
-		running = 0;
-	if (signal == SIGQUIT)
-		running = 1;
-}
-
 void Server::acceptConnection(void)
 {
 	struct sockaddr_in client_addr;
@@ -616,18 +615,6 @@ void    Server::creatingServer(Server &server)
 	server.run();
 }
 
-
-void Server::disconnected(Client *&client, int socket) {
-	if (client != nullptr) {
-		if (!client->getNickName().empty())
-			std::cout << client->getNickName() << " disconnected." << std::endl;
-		close(client->getSocketFd());
-		delete client;
-		client = nullptr; // To prevent further access to the deleted pointer
-		out = true;
-	}
-}
-
 void   Server::disconnectClient(int socket, const std::string reason)
 {
 	Client *client;
@@ -641,15 +628,23 @@ void   Server::disconnectClient(int socket, const std::string reason)
 			{
 				cit->second->broadcast(":" + client->getNickName()+ " QUIT :" + reason +"\r\n", client);
 				cit->second->removeClient(client);
+                client->decrementChannelCount();
 				if(cit->second->getClients().size() == 0)
+                {
+                    delete cit->second;
 					channels.erase(cit++);
+                }
 				else
-					++cit;	
+					++cit;
 			}
-			clients.erase(it);
-			FD_CLR(client->getSocketFd(), &_readfds);
-			close(client->getSocketFd());
-			delete client;
+            channels.clear();
+            if (client)
+            {
+                FD_CLR(client->getSocketFd(), &_readfds);
+                close(client->getSocketFd());
+                delete client;
+            }
+            clients.erase(it);
 			break;
 		}
 	}
@@ -668,7 +663,6 @@ void Server::ClientCommunication()
 			ssize_t bytesReceived = recv(client->getSocketFd(), buffer, sizeof(buffer) - 1, 0);
 			if (bytesReceived <= 0) {
                 disconnectClient(client->getSocketFd(), "QUIT");
-                it = clients.erase(it);
                 continue;
             }            
 			buffer[bytesReceived] = '\0';
@@ -679,16 +673,22 @@ void Server::ClientCommunication()
                 size_t pos;
                 while ((pos = client->_receiveBuffer.find('\n')) != std::string::npos && out == 0) {
                     line = client->_receiveBuffer.substr(0, pos);
+                    for(size_t i=0; i < line.length(); i++)
+                    {
+                        line[i] = toupper((char)line[i]);
+                        if(line[i] == ' ')
+                            break;
+                    }
                     if (!line.empty() && line[line.size() - 1] == '\r')
                         line = line.substr(0, line.size() - 1);
                     if (line[0] == '/')
-                    line.erase(0, 1);
+                        line.erase(0, 1);
                     client->_receiveBuffer.erase(0, pos + 1);
                     std::vector<Command>::iterator cmd = commands.begin();
                     while (cmd != commands.end()) {
                         if (line.rfind(cmd->label, 0) == 0) {
-                            if (line.size() == cmd->label.size())
-                                line += "";
+                            if(line.size() == cmd->label.size())
+                                line += " ";
                             std::vector<std::string> params = split(line.substr(cmd->label.size() + 1), ' ');
                             if (!cmd->label.compare("QUIT"))
                                 out = 1;
@@ -705,10 +705,7 @@ void Server::ClientCommunication()
                         ++cmd;
                     }
                     if (cmd == commands.end() && client->getState() == REGISTERED)
-                    {
-                        std::cout << "commands are " << line << "\n";
-                        client->write(":" + this->getServerName() + " 421 " + client->getNickName() + " " + line + ":Unknown command\r\n");
-                    }
+                        client->write(":" + this->getServerName() + " 421 " + client->getNickName() + " " + line + " :Unknown command\r\n");
                 }
 			}
 			catch(const std::exception& e)

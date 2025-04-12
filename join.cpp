@@ -97,7 +97,6 @@ void handleJoin(Server &server, Client &client, std::vector<std::string>  &param
 				channel->addClient(&client);
 				std::string users;
 				std::vector<std::string> nicknames = channel->getNickNames();
-				std::vector<std::string> :: iterator it = nicknames.begin();
 				for(std::vector<std::string> :: iterator it = nicknames.begin();it != nicknames.end(); ++it)
 							 users.append(*it + " ");
 		

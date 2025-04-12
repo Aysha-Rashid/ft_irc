@@ -50,7 +50,7 @@ class Server
     private:
         std::string         _serverName;
         std::string         _password;
-        size_t              _port;
+        int                 _port;
         int                 _socketFd;
         struct sockaddr_in	_address;
         socklen_t           _addrlen;

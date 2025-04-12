@@ -8,7 +8,7 @@ static void signal_handler(int signal)
     if (signal == SIGTSTP)
         running = 0;
     if (signal == SIGQUIT)
-        ;
+        running = 1;
 }
 
 int main(int argc, char **argv)

@@ -1,5 +1,4 @@
 #pragma once
-#include <poll.h>
 #include <iostream>
 #include <exception>
 #include <stdexcept>
@@ -17,6 +16,8 @@
 #include <signal.h>
 #include <sstream>
 #include <unistd.h>
+#include <cstdlib>
+#include <cstdio>
 # include <map>
 
 
