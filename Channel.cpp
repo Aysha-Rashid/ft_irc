@@ -1,9 +1,8 @@
 # include "Channel.hpp"
-
-Channel::Channel() :_topic("") , _userLimit(0), _inviteOnly(false){}
+Channel::Channel() :_channelKey(""),_topic("") , _userLimit(0), _inviteOnly(false){}
 
 Channel::Channel(std::string name, std::string password) 
-    :_name(name), _channelKey(password), _topic("") , _userLimit(0), _inviteOnly(false){}
+    :_name(name), _channelKey(password), _topic("") , _userLimit(0), _inviteOnly(false),_topicPrivilege(false){}
 
 Channel::Channel(const Channel &other) 
 {
@@ -12,6 +11,7 @@ Channel::Channel(const Channel &other)
     _channelKey = other._channelKey;
     _inviteOnly = other._inviteOnly;
     _userLimit = other._userLimit;
+    _topicPrivilege = other._topicPrivilege;
 }
 
 Channel & Channel::operator = (const Channel &other)
@@ -23,6 +23,7 @@ Channel & Channel::operator = (const Channel &other)
         _channelKey = other._channelKey;
         _inviteOnly = other._inviteOnly;
         _userLimit = other._userLimit;
+        _topicPrivilege = other._topicPrivilege;
     }
     return (*this);
 }
@@ -77,6 +78,22 @@ bool Channel::getTopicPrivilege() const
     return(_topicPrivilege);
 }
 
+std::string Channel::getChannelMode() const
+{
+  std::string modeStr = "";
+
+  if(this->getTopicPrivilege())
+    modeStr.append("t");
+  if(this->getUserLimit() > 0)  
+    modeStr.append("l");
+  if(this->getInviteOnly())
+    modeStr.append("i");
+  if(!this->getChannelKey().empty())
+    modeStr.append("k");
+
+  return (modeStr);
+}
+
 //setters
 void Channel::setChannelKey(const std::string &key)
 {
@@ -103,6 +120,10 @@ void Channel::setInviteOnly(bool inviteValue)
     _inviteOnly = inviteValue;
 }
 
+void Channel::setTopicPrivilege(bool topicPriv)
+{
+    _topicPrivilege = topicPriv;
+}
 void Channel::setInvited(Client *client)
 {
     std::vector<Client *> :: iterator it = _invitedList.begin();
@@ -212,3 +233,17 @@ bool Channel::isClientInChannel(const Client *client) const
     }
     return (false);
 }
+
+Client * Channel::getClientWithNickname(const std::string &nickname)
+{
+    std::vector<Client *>::const_iterator it = _clientList.begin();
+    while (it != _clientList.end())
+    {
+        if((*it)->getNickName() == nickname)
+            return (*it);
+        ++it;
+    }
+    return (NULL); 
+}
+
+

@@ -21,6 +21,7 @@ private:
     std::vector<Client *> _invitedList;
     bool _inviteOnly;
     bool _topicPrivilege;
+    
 
     Channel();
     Channel(const Channel &other);
@@ -39,6 +40,7 @@ public:
     std::vector<std::string> getNickNames() const;
     bool getInviteOnly() const;
     bool getTopicPrivilege() const;
+    std::string getChannelMode() const;
 
     //setters
     void setChannelKey(const std::string &key);
@@ -46,8 +48,9 @@ public:
     void setTopic(const std::string &topic);
     void setUserLimit(const size_t limit);
     void setInviteOnly(bool inviteValue);
+    void setTopicPrivilege(bool topicPriv);
     void setInvited(Client *client);
-
+   
     //member functions
     void addClient(Client *client);
     void removeClient(Client *client);
@@ -58,6 +61,8 @@ public:
     bool isOperator(const Client *client) const;
     bool isInvited(const Client *client);
     bool isClientInChannel(const Client *client) const;
+    Client *getClientWithNickname(const std::string &nickname);
+
 };
 
 # endif

@@ -114,6 +114,8 @@ void Client::write(const   std::string msg)    const
          throw std::runtime_error("Failed to send message.");
 }
 
+
+
 void Client::incrementChannelCount(void)
 {
     _channelCount++;

@@ -24,17 +24,17 @@ private:
     int _channelCount;
     time_t _lastActivity;  // Timestamp of last activity
     
-    public:
-    std::string _receiveBuffer;
+    
+
+public:
     Client();  
     Client(const Client &other);
-    Client &operator =(const Client &other);
+    Client &operator = (const Client &other);
     Client(int fd, std::string &ip);
     ~Client();
-  
+    std::string _receiveBuffer;
     //setters
     void    setSocketFd(int socketFd);
-    void    setIpAddress(std::string _ipAddress);
     void    setNickName(std::string &nickname);
     void    setUserName(std::string &username);
     void    setRealName(std::string &realname);
@@ -57,6 +57,7 @@ private:
     void    write(const   std::string msg)    const;
     void incrementChannelCount(void);
     void decrementChannelCount(void);
+    
 };
 
 # endif

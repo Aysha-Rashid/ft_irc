@@ -7,16 +7,9 @@
 # include "Client.hpp"
 #include <map>
 
-// #define ERR_NONICKNAMEGIVEN std::string ("431 :No nickname given\r\n")
-// #define ERR_ERRONEUSNICKNAME std::string ("432 :Erroneous Nickname\r\n")
-// #define ERR_NICKNAMEINUSE std::string ("433 :The requested nickname is already in use by another client\r\n")
-// #define ERR_NEEDMOREPARAMS std::string ("461 :Not enough parameters\r\n")
 
-// extern bool running;
+extern bool running;
 
-// void handlePass(int client_fd, std::vector<std::string> param);
-// void handleNick(int client_fd, std::vector<std::string> param);
-// void handleUser(int client_fd, std::vector<std::string> param);
 class Server;
 // Define the command handler type
 typedef void (*CommandHandler)(Server &server, Client &client, std::vector<std::string>&);
@@ -28,22 +21,6 @@ struct Command{
     Command(const std::string& lbl, CommandHandler handle,  clientState auth) : label(lbl), handler(handle), requiredAuthState(auth) {}
 };
 
-
-
-void handlePass(Server &server, Client &client, std::vector<std::string>& params);
-void handleNick(Server &server, Client &client, std::vector<std::string>& params);
-void handleUser(Server &server, Client &client, std::vector<std::string>& params);
-void handleJoin(Server &server, Client &client, std::vector<std::string>& param);
-void handlePart(Server &server, Client &client, std::vector<std::string>& param);
-void handleInvite(Server &server, Client &client, std::vector<std::string>& param);
-void handleMode(Server &server, Client &client, std::vector<std::string>& param);
-void handlePing(Server &server, Client &client, std::vector<std::string>& param);
-void handleQuit(Server &server, Client &client, std::vector<std::string>& param);
-void handleWho(Server &server, Client &client, std::vector<std::string>& param);
-void handleKick(Server &server, Client &client, std::vector<std::string>& param);
-void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& param);
-void handleCap(Server &server, Client &client, std::vector<std::string>& param);
-void handlePong(Server &server, Client &client, std::vector<std::string>& param);
 
 class Server
 {
