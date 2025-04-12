@@ -58,7 +58,7 @@ void handleUser(Server &server, Client &client, std::vector<std::string>& params
 	if(!client.getNickName().empty())
     {
 		client.setState(REGISTERED);
-        client.write(":" + server.getServerName() + " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" ,to the IRC server\r\n");	
+        client.write(":" + server.getServerName() + " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +", to the IRC server\r\n");	
         std::cout << " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
     }
 }
@@ -283,22 +283,27 @@ void handlePong(Server &server, Client &client, std::vector<std::string>& params
 }
 
 void handleQuit(Server &server, Client &client, std::vector<std::string>& params) {
-	std::string reason = "Leaving";
-
-    (void)params;
+    std::string reason = params.size() > 1 ? ""  : "Leaving...";
+	
+	if(reason.empty())
+		for(std::vector<std::string> ::iterator it = params.begin(); it != params.end(); ++it)		
+				reason.append(*it + " ");
+	std::cout << "reason =" << reason << std::endl;
 	if(client.getState() == REGISTERED)
 	{
+		if (reason.at(0) == ':')
+			reason = reason.substr(1);
 		server.disconnectClient(client.getSocketFd(),reason);
-        return ;
+		return ;
 	}
 	else
 	{
 		if(client.getNickName().empty())
-			client.write(":"+ server.getServerName() + " QUIT :" + reason + "\r\n");
+			client.write(":"+ server.getServerName() + " * QUIT :" + reason + "\r\n");
 		else
-			client.write(":"+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n");
+            client.write(":"+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n");
+		std::cout << ": "+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n";
 	}
-	std::cout << ": "+ server.getServerName() + " " + client.getNickName() +" QUIT :" + reason + "\r\n";
 }
 
 void handleWho(Server &server, Client &client, std::vector<std::string>& params) {
@@ -626,18 +631,21 @@ void   Server::disconnectClient(int socket, const std::string reason)
 			std::map<std::string, Channel *> :: iterator cit = channels.begin();  // Deleting client from all channels
 			while (cit != channels.end())
 			{
-				cit->second->broadcast(":" + client->getNickName()+ " QUIT :" + reason +"\r\n", client);
-				cit->second->removeClient(client);
-                client->decrementChannelCount();
+                if (cit->second->isClientInChannel(client))
+                {
+                    cit->second->broadcast(":" + client->getNickName()+ " QUIT :" + reason +"\r\n", client);
+                    cit->second->removeClient(client);
+                    client->decrementChannelCount();
+                }
 				if(cit->second->getClients().size() == 0)
                 {
                     delete cit->second;
 					channels.erase(cit++);
                 }
 				else
-					++cit;
+                    ++cit;
 			}
-            channels.clear();
+            // channels.clear();
             if (client)
             {
                 FD_CLR(client->getSocketFd(), &_readfds);
@@ -706,6 +714,8 @@ void Server::ClientCommunication()
                     }
                     if (cmd == commands.end() && client->getState() == REGISTERED)
                         client->write(":" + this->getServerName() + " 421 " + client->getNickName() + " " + line + " :Unknown command\r\n");
+                    if (out == 1)
+                        break ;
                 }
 			}
 			catch(const std::exception& e)
