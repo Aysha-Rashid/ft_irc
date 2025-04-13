@@ -15,6 +15,9 @@
 #include <signal.h>
 #include <sstream>
 #include <unistd.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 # include <map>
 
 

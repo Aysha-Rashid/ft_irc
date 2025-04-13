@@ -8,7 +8,7 @@ static void signal_handler(int signal)
     if (signal == SIGTSTP)
         running = 0;
     if (signal == SIGQUIT)
-        ;
+        running = 1;
 }
 
 int main(int argc, char **argv)
@@ -22,10 +22,6 @@ int main(int argc, char **argv)
         signal(SIGINT, signal_handler);
         signal(SIGTSTP, signal_handler);
         start.creatingServer(start);
-
-        // Close all sockets before exiting
-        // ctr+D is used to simulate how TCP/IP may split messages into multiple packets.
-                // must handle these fragmented messages and only execute complete commands.
     }
     catch (const std::exception& e)
     {

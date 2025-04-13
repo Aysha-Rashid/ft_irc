@@ -48,14 +48,14 @@ void handleMode(Server &server, Client &client, std::vector<std::string> &params
                         channel->setInviteOnly(true);
                     else
                         channel->setInviteOnly(false);   
-                    channel->broadcast(":" + client.getPrefix() + " MODE " + target + (isAdded ? "+i" : "-i") + "\r\n");     
+                    channel->broadcast(":" + client.getPrefix() + " MODE " + target + (isAdded ? " +i" : " -i") + "\r\n");     
                     break;  
         case 't':  // set topic
                     if(isAdded)
                         channel->setTopicPrivilege(true);
                     else
                         channel->setTopicPrivilege(false);   
-                    channel->broadcast(":" + client.getPrefix() + " MODE " + target + (isAdded ? "+t" : "-t") + "\r\n");     
+                    channel->broadcast(":" + client.getPrefix() + " MODE " + target + (isAdded ? " +t" : " -t") + "\r\n");     
                     break; 
         case 'o':  // grant or revoke operator privilege
                     if(reqArgs.empty())
@@ -78,7 +78,7 @@ void handleMode(Server &server, Client &client, std::vector<std::string> &params
                         channel->addOperator(targetClient);
                     else
                         channel->removeOperator(targetClient);   
-                    channel->broadcast(":" + client.getPrefix() + " MODE " + target + (isAdded ? "+o" : "-o") + "\r\n");  
+                    channel->broadcast(":" + client.getPrefix() + " MODE " + target + (isAdded ? " +o" : " -o") + "\r\n");  
                     reqArgs.erase(reqArgs.begin());   
                     break;                                                     
     //    default: std::cout << "Invalid Mode\r\n";

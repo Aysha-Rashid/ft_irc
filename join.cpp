@@ -29,12 +29,10 @@ void handleJoin(Server &server, Client &client, std::vector<std::string>  &param
         return;
     }
 
-
     Channel *channel = server.getChannel(name);
-
         // creating a new channel
-       if(!channel)
-        {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+    if(!channel)
+    {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
         channel = new Channel(name, channelKey);
         server.registerChannel(channel);
         channel->addClient(&client);
@@ -52,7 +50,7 @@ void handleJoin(Server &server, Client &client, std::vector<std::string>  &param
         std::cout << ":" << client.getPrefix() + "@" + server.getServerName() + " JOIN " + name << "\r\n";
         channel->broadcast(":" + client.getPrefix() + "@" + server.getServerName() + " JOIN " + name + "\r\n", &client);
         continue;
-        }  
+    }  
     
         //channel exists
         if(channel->isClientInChannel(&client)){

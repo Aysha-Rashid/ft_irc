@@ -97,7 +97,7 @@ void handlePart(Server &server, Client &client, std::vector<std::string>& params
         }
 
         // Broadcast PART message to all channel members
-        channel->broadcast(":" + client.getPrefix() + " PART " + channelName + " :" + reason + "\r\n");
+        channel->broadcast(": PART " + reason + "\r\n");
         
         // Remove client from channel
         channel->removeClient(&client);
@@ -120,7 +120,7 @@ void handleInvite(Server &server, Client &client, std::vector<std::string>& para
     std::string channelName = params[1];
 
     // Find target client
-    Client *targetClient = nullptr;
+    Client *targetClient = NULL;
     for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
         if ((*it)->getNickName() == targetNick) {
             targetClient = *it;
@@ -202,13 +202,8 @@ void handleQuit(Server &server, Client &client, std::vector<std::string>& params
 	if(reason.empty())
 		for(std::vector<std::string> ::iterator it = params.begin(); it != params.end(); ++it)		
 				reason.append(*it + " ");
-	
 	if(client.getState() == REGISTERED)
-	{
-		std::cout << "reason =" << reason << std::endl;
 		server.disconnectClient(client.getSocketFd(),reason);
-
-	}
 	else
 	{
 		if(client.getNickName().empty())
@@ -339,7 +334,7 @@ void handleKick(Server &server, Client &client, std::vector<std::string>& params
     }
 
     // Find target client
-    Client *targetClient = nullptr;
+    Client *targetClient = NULL;
     for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
         if ((*it)->getNickName() == targetNick) {
             targetClient = *it;
@@ -397,7 +392,7 @@ void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& par
         channel->broadcast(":" + client.getPrefix() + " PRIVMSG " + target + " :" + message + "\r\n", &client);
     } else {
         // Private message to a user
-        Client *targetClient = nullptr;
+        Client *targetClient = NULL;
         for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
             if ((*it)->getNickName() == target) {
                 targetClient = *it;
@@ -420,22 +415,27 @@ void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& par
 
 Server::~Server()
 {
-	std::string quitMsg = "server QUIT :Server shutting down\n";
+    std::string quitMsg = "server QUIT :Server shutting down\n";
 
 	if (!clients.empty())
 	{
 		for (size_t i = 0; i < clients.size(); i++) {
 			int clientSocket = clients[i]->getSocketFd();
 			
+            if (clients[i]->getChannelCount() > 0)
+            {
+                for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); it++)
+                    delete it->second;
+                channels.clear();
+            }
 			if (clientSocket > 0) {
 				send(clientSocket, quitMsg.c_str(), quitMsg.length(), 0);
 				close(clientSocket);
 			}
-
 			delete clients[i];
 		}
+        clients.clear();
 	}
-	clients.clear();
 	std::cout << "server QUIT :Server shutting down\r\n";
 }
 
