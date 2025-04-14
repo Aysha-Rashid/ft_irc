@@ -1,6 +1,7 @@
 # include "Ft_Irc.hpp"
 # include "Server.hpp"
 # include "Client.hpp"
+# include "Utils.hpp"
 
 void handleMode(Server &server, Client &client, std::vector<std::string> &params)
 {
@@ -18,7 +19,7 @@ void handleMode(Server &server, Client &client, std::vector<std::string> &params
             client.write(":"+server.getServerName()+" 403 "+ client.getNickName() + " " + target +  " :No such channel!\r\n");
             return;
     }
-       std::cout << "channel mode= "<< channel->getChannelMode();
+    std::cout << "channel mode= "<< channel->getChannelMode() << std::endl;
     if(params.size() < 2){
         client.write(":" + server.getServerName() + " 324 " + client.getNickName() + " " + target + " :+" + channel->getChannelMode() + "\r\n");
         return;
@@ -57,6 +58,69 @@ void handleMode(Server &server, Client &client, std::vector<std::string> &params
                         channel->setTopicPrivilege(false);   
                     channel->broadcast(":" + client.getPrefix() + " MODE " + target + (isAdded ? " +t" : " -t") + "\r\n");     
                     break; 
+           
+        case 'l':  // set userlimit
+                    if(reqArgs.empty() && isAdded)
+                    {
+                        client.write(":"+ server.getServerName()+ " 461 " + client.getNickName() + " MODE :Not enough parameters\r\n");
+                        return;
+                    }
+                    if(!channel->isOperator(&client))   
+                    {
+                        client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + target + " :You're not channel operator\r\n");
+                        return;
+                    }  
+                    if(isAdded)
+                        {
+                            size_t limit;
+                            limit = stringToNumber(reqArgs[0]);
+                            if(limit >= INT_MAX ||( limit == 0 && reqArgs[0] != "0"))
+                            {
+                                client.write(":" + server.getServerName() + " 501 " + client.getNickName() + " " + target + " :Unknown MODE flag\r\n");
+                                return;
+                            } 
+                            try
+                            {
+                                channel->setUserLimit(limit);
+                            }
+                            catch(const std::exception& e)
+                            {
+                                std::cerr << e.what() << '\n';
+                                client.write(":"+ server.getServerName()+ " 461 " + client.getNickName() + " MODE :Not enough parameters\r\n");
+                                return;
+                            }
+                        }
+                    else
+                        channel->setUserLimit(0);   
+                    if(isAdded)    
+                        channel->broadcast(":" + client.getPrefix() + " MODE " + target + " +l " + reqArgs[0] + " \r\n");   
+                    else if(!isAdded && reqArgs.size() > 0)  
+                        channel->broadcast(":" + client.getPrefix() + " MODE " + target + " -l *\r\n");     
+                    if(reqArgs.size() > 0)
+                        reqArgs.erase(reqArgs.begin());
+                    break;   
+        case 'k':  // set channel key
+                    if(reqArgs.empty() && isAdded)
+                    {
+                        client.write(":"+ server.getServerName()+ " 461 " + client.getNickName() + " MODE :Not enough parameters\r\n");
+                        return;
+                    }
+                    if(!channel->isOperator(&client))   
+                    {
+                        client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + target + " :You're not channel operator\r\n");
+                        return;
+                    }       
+                    if(isAdded)
+                        channel->setChannelKey(reqArgs[0]);
+                    else
+                        channel->setChannelKey("");   
+                    if(isAdded)    
+                        channel->broadcast(":" + client.getPrefix() + " MODE " + target + " +k " + reqArgs[0] + " \r\n");   
+                    else if(!isAdded && reqArgs.size() > 0)  
+                        channel->broadcast(":" + client.getPrefix() + " MODE " + target + " -k *\r\n");   
+                    if(reqArgs.size() > 0)
+                        reqArgs.erase(reqArgs.begin());   
+                    break;    
         case 'o':  // grant or revoke operator privilege
                     if(reqArgs.empty())
                     {
@@ -75,18 +139,18 @@ void handleMode(Server &server, Client &client, std::vector<std::string> &params
                         return; 
                     }
                     if(isAdded)
-                        channel->addOperator(targetClient);
+                        channel->addOperator(targetClient);                                      
                     else
                         channel->removeOperator(targetClient);   
-                    channel->broadcast(":" + client.getPrefix() + " MODE " + target + (isAdded ? " +o" : " -o") + "\r\n");  
+                    if(isAdded)    
+                        channel->broadcast(":" + client.getPrefix() + " MODE " + target + " +o " + reqArgs[0] + " \r\n");   
+                    else if(!isAdded && reqArgs.size() > 0)  
+                        channel->broadcast(":" + client.getPrefix() + " MODE " + target + " -o " + reqArgs[0] + " \r\n");   
                     reqArgs.erase(reqArgs.begin());   
-                    break;                                                     
-    //    default: std::cout << "Invalid Mode\r\n";
+                    break; 
+    // default:        client.write(":" + server.getServerName() + " 501 " + client.getNickName() + " " + target + " :Unknown MODE flag\r\n");
+    //                 return;
        
        }
     } 
 }
-
-
-
-

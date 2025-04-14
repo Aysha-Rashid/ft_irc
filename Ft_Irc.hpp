@@ -1,5 +1,4 @@
 #pragma once
-#include <poll.h>
 #include <iostream>
 #include <exception>
 #include <vector>
@@ -20,13 +19,21 @@
 #include <cstring>
 # include <map>
 
-
-
 extern bool running;
 
-#include "Client.hpp"
+class Server;
+# include "Client.hpp"
 # include "Server.hpp"
+# include "Commands.hpp"
+// Define the command handler type
+typedef void (*CommandHandler)(Server &server, Client &client, std::vector<std::string>&);
 
+struct Command{
+    std::string label;
+    CommandHandler handler;
+    clientState requiredAuthState;
+    Command(const std::string& lbl, CommandHandler handle,  clientState auth) : label(lbl), handler(handle), requiredAuthState(auth) {}
+};
 /* Error Messages */
 
 # define ERR_ALREADYREGISTERED std::string (" 462 :You may not reregister\r\n")
@@ -41,18 +48,3 @@ extern bool running;
 /*Replies */
 # define RPL_WELCOME std::string (" :Welcome to the IRC Network, ") 
 
-/* Commands */
-void handlePass(Server &server, Client &client, std::vector<std::string>& params);
-void handleNick(Server &server, Client &client, std::vector<std::string>& params);
-void handleUser(Server &server, Client &client, std::vector<std::string>& params);
-void handleJoin(Server &server, Client &client, std::vector<std::string>& param);
-void handlePart(Server &server, Client &client, std::vector<std::string>& param);
-void handleInvite(Server &server, Client &client, std::vector<std::string>& param);
-void handleMode(Server &server, Client &client, std::vector<std::string>& param);
-void handlePing(Server &server, Client &client, std::vector<std::string>& param);
-void handleQuit(Server &server, Client &client, std::vector<std::string>& param);
-void handleWho(Server &server, Client &client, std::vector<std::string>& param);
-void handleKick(Server &server, Client &client, std::vector<std::string>& param);
-void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& param);
-void handleTopic(Server &server, Client &client, std::vector<std::string>& param);
-void handlePong(Server &server, Client &client, std::vector<std::string>& param);

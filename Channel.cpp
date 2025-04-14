@@ -245,5 +245,3 @@ Client * Channel::getClientWithNickname(const std::string &nickname)
     }
     return (NULL); 
 }
-
-
