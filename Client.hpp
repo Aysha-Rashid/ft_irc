@@ -22,7 +22,7 @@ class Client
 		std::string _realname;
 		clientState _state;
 		int			_channelCount;
-		time_t		_lastActivity;  // Timestamp of last activity
+		time_t		_lastActivity;
 		
 	public:
 		Client();  
@@ -38,8 +38,8 @@ class Client
 		void		setUserName(std::string &username);
 		void		setRealName(std::string &realname);
 		void		setState(clientState state);
-		void		updateLastActivity();  // Update last activity timestamp
-		bool		isInactive(time_t timeout) const;  // Check if client has been inactive too long
+		void		updateLastActivity();
+		bool		isInactive(time_t timeout) const;
 
 		//getters
 		int			getSocketFd(void) const;
@@ -50,7 +50,7 @@ class Client
 		std::string	getPrefix(void) const;
 		clientState	getState(void) const;
 		int			getChannelCount(void) const;
-		time_t		getLastActivity(void) const;  // Get last activity timestamp
+		time_t		getLastActivity(void) const;
 
 		//member    functions
 		void		write(const std::string msg) const;

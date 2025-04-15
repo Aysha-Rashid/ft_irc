@@ -6,18 +6,16 @@ std::vector<Channel*> Server::getChannelsByClient(Client* client) {
 	std::vector<Channel*> result;
 	for (std::map<std::string, Channel*>::iterator it = channels.begin(); it != channels.end(); ++it) {
 		Channel* chan = it->second;
-		if (chan->isClientInChannel(client)) {
+		if (chan->isClientInChannel(client))
 			result.push_back(chan);
-		}
 	}
 	return result;
 }
 
 bool isNickNameInUse(Server &server, const std::string& nickName) {
 	for (std::vector<Client *>::iterator it = server.clients.begin(); it != server.clients.end(); it++) {
-		if ((*it)->getNickName() == nickName) {
+		if ((*it)->getNickName() == nickName)
 			return true;
-		}
 	}
 	return false;
 }

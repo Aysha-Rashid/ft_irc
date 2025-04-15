@@ -5,6 +5,15 @@
 
 class Server;
 
+typedef void (*CommandHandler)(Server &server, Client &client, std::vector<std::string>&);
+
+struct Command{
+	std::string label;
+	CommandHandler handler;
+	clientState requiredAuthState;
+	Command(const std::string& lbl, CommandHandler handle,  clientState auth) : label(lbl), handler(handle), requiredAuthState(auth) {}
+};
+
 void handlePass(Server &server, Client &client, std::vector<std::string>& params);
 void handleNick(Server &server, Client &client, std::vector<std::string>& params);
 void handleUser(Server &server, Client &client, std::vector<std::string>& params);

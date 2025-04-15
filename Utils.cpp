@@ -35,14 +35,12 @@ std::vector<std::string> split(const std::string &str, int separator)
 
 size_t stringToNumber(const std::string &str)
 {
-    size_t number = 0;
-
-    for(size_t i = 0; i < str.length(); i++)
-    {
-        if(isdigit(str[i]))
-            number = number * 10 + str[i] - '0';
-    }
-    return(number);
+    size_t number;
+    std::stringstream ss(str);
+    ss >> number;
+    if (ss.fail() || !ss.eof())
+        return 0;
+    return number;
 }
 
 void checkError(int result, const char *error, const std::string &errmeg)

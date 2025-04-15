@@ -53,8 +53,11 @@ void handlePart(Server &server, Client &client, std::vector<std::string>& params
     }
 
     std::vector<std::string> channelNames = split(params[0], ',');
-    std::string reason = params.size() > 1 ? params[1] : "Leaving";
+    std::string reason = params.size() > 1 ? "" : "Leaving";
 
+    if(reason.empty())
+		for(std::vector<std::string> ::iterator it = params.begin(); it != params.end(); ++it)		
+			reason.append(*it + " ");
     for (size_t i = 0; i < channelNames.size(); i++) {
         std::string channelName = channelNames[i];
         Channel *channel = server.getChannel(channelName);
@@ -69,21 +72,13 @@ void handlePart(Server &server, Client &client, std::vector<std::string>& params
             continue;
         }
 
-        // Check if the leaving client is an operator
         bool wasOperator = channel->isOperator(&client);
-        
-        // Remove operator status if the client is an operator
         if (wasOperator) {
             channel->removeOperator(&client);
         }
-
-        // Broadcast PART message to all channel members
         channel->broadcast(":" + client.getPrefix() + " PART " + channelName + " :" + reason + "\r\n");
-        
-        // Remove client from channel
         channel->removeClient(&client);
         
-        // If channel is empty, delete it
         if (channel->getClients().empty()) {
             server.channels.erase(channelName);
             delete channel;
@@ -99,8 +94,6 @@ void handleInvite(Server &server, Client &client, std::vector<std::string>& para
 
     std::string targetNick = params[0];
     std::string channelName = params[1];
-
-    // Find target client
     Client *targetClient = NULL;
     for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
         if ((*it)->getNickName() == targetNick) {
@@ -134,14 +127,8 @@ void handleInvite(Server &server, Client &client, std::vector<std::string>& para
         client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + channelName + " :You're not channel operator\r\n");
         return;
     }
-
-    // Send INVITE message to target client
     targetClient->write(":" + client.getPrefix() + " INVITE " + targetNick + " " + channelName + "\r\n");
-    
-    // Send RPL_INVITING to inviting client
     client.write(":" + server.getServerName() + " 341 " + client.getNickName() + " " + targetNick + " " + channelName + "\r\n");
-    
-    // Add target to invited list
     channel->setInvited(targetClient);
 }
 
@@ -154,8 +141,6 @@ void handlePing(Server &server, Client &client, std::vector<std::string>& params
     }
     
     std::string token = params[0];
-    
-    // Reply with PONG message containing the same token
     msg = ":" + server.getServerName() + " PONG " + server.getServerName() + " :" + token + "\r\n";
     client.write(msg);
 }
@@ -167,12 +152,7 @@ void handlePong(Server &server, Client &client, std::vector<std::string>& params
         client.write(msg);
         return;
     }
-    
-    // Update the client's last activity time
     client.updateLastActivity();
-    
-    // The token in params[0] should match what was sent in the PING
-    // We don't need to do anything else as this just confirms the client is alive
 }
 
 void handleQuit(Server &server, Client &client, std::vector<std::string>& params) {
@@ -182,14 +162,10 @@ void handleQuit(Server &server, Client &client, std::vector<std::string>& params
 	
 	if(reason.empty())
 		for(std::vector<std::string> ::iterator it = params.begin(); it != params.end(); ++it)		
-				reason.append(*it + " ");
+			reason.append(*it + " ");
 	
 	if(client.getState() == REGISTERED)
-	{
-		std::cout << "reason =" << reason << std::endl;
 		server.disconnectClient(client.getSocketFd(),reason);
-
-	}
 	else
 	{
 		if(client.getNickName().empty())
@@ -209,23 +185,17 @@ void handleWho(Server &server, Client &client, std::vector<std::string>& params)
     std::string target = params[0];
     bool operFlag = (params.size() > 1 && params[1] == "o");
 
-    // Check if target is a channel
     if (target[0] == '#' || target[0] == '&') {
         Channel *channel = server.getChannel(target);
         if (channel) {
             std::vector<Client*> clients = channel->getClients();
             for (std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
                 Client *member = *it;
-                
-                // Skip if "o" flag specified and member is not a channel operator
                 if (operFlag && !channel->isOperator(member))
                     continue;
-                
-                // Format: <channel> <user> <host> <server> <nick> <H|G>[*][@|+] :<hopcount> <real name>
-                std::string flags = "H"; // H for "here", G would be "gone"
+                std::string flags = "H";
                 if (channel->isOperator(member))
-                    flags += "@"; // @ for channel operator
-                
+                    flags += "@";
                 client.write(":" + server.getServerName() + " 352 " + client.getNickName() + " " + 
                              channel->getName() + " " + member->getUserName() + " " + 
                              member->getIpAddress() + " " + server.getServerName() + " " + 
@@ -234,14 +204,10 @@ void handleWho(Server &server, Client &client, std::vector<std::string>& params)
             }
         }
     } else {
-        // Handle WHO for a specific mask (nickname)
         for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
             Client *cli = *it;
-            
-            // Check if client matches the mask (simple implementation - just exact nickname match)
             if (cli->getNickName() == target || target == "*") {
                 if (operFlag) {
-                    // Check if client is an operator in any channel
                     bool isOp = false;
                     for (std::map<std::string, Channel*>::iterator ch = server.channels.begin(); ch != server.channels.end(); ++ch) {
                         if (ch->second->isOperator(cli)) {
@@ -251,8 +217,6 @@ void handleWho(Server &server, Client &client, std::vector<std::string>& params)
                     }
                     if (!isOp) continue;
                 }
-                
-                // Find a channel the client is in (if any) for the response
                 std::string channelName = "*";
                 std::string flags = "H";
                 
@@ -273,8 +237,6 @@ void handleWho(Server &server, Client &client, std::vector<std::string>& params)
             }
         }
     }
-    
-    // End of WHO list
     client.write(":" + server.getServerName() + " 315 " + client.getNickName() + " " + target + " :End of WHO list\r\n");
 }
 
@@ -287,64 +249,44 @@ void handleKick(Server &server, Client &client, std::vector<std::string>& params
     std::string channelName = params[0];
     std::string targetNick = params[1];
     std::string reason = "Kicked";
-    
-    // If there's a reason provided, use it
     if (params.size() > 2) {
         reason = params[2];
         if (reason[0] == ':')
             reason = reason.substr(1);
-        
-        // Combine additional parameters for reason if there are any
         for (size_t i = 3; i < params.size(); i++) {
             reason += " " + params[i];
         }
     }
-
-    // Check if channel exists
     Channel *channel = server.getChannel(channelName);
     if (!channel) {
         client.write(":" + server.getServerName() + " 403 " + client.getNickName() + " " + channelName + " :No such channel\r\n");
         return;
     }
-
-    // Check if kicker is in channel
     if (!channel->isClientInChannel(&client)) {
         client.write(":" + server.getServerName() + " 442 " + client.getNickName() + " " + channelName + " :You're not on that channel\r\n");
         return;
     }
-
-    // Check if kicker is a channel operator
     if (!channel->isOperator(&client)) {
         client.write(":" + server.getServerName() + " 482 " + client.getNickName() + " " + channelName + " :You're not channel operator\r\n");
         return;
     }
-
-    // Find target client
-    Client *targetClient = nullptr;
+    Client *targetClient = NULL;
     for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
         if ((*it)->getNickName() == targetNick) {
             targetClient = *it;
             break;
         }
     }
-
-    // Check if target exists
     if (!targetClient) {
         client.write(":" + server.getServerName() + " 401 " + client.getNickName() + " " + targetNick + " :No such nick\r\n");
         return;
     }
-
-    // Check if target is in the channel
     if (!channel->isClientInChannel(targetClient)) {
         client.write(":" + server.getServerName() + " 441 " + client.getNickName() + " " + targetNick + " " + channelName + " :They aren't on that channel\r\n");
         return;
     }
-
-    // Broadcast kick message to all members of the channel
     std::string kickMsg = ":" + client.getPrefix() + " KICK " + channelName + " " + targetNick + " :" + reason + "\r\n";
     channel->broadcast(kickMsg);
-
-    // Remove client from channel
     channel->removeClient(targetClient);
 }
 
@@ -360,8 +302,6 @@ void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& par
         message = message.substr(1);
     for (size_t i = 2; i < params.size(); i++)
         message += " " + params[i];
-
-    // If target starts with # or &, it's a channel message
     if (target[0] == '#' || target[0] == '&') {
         Channel *channel = server.getChannel(target);
         if (!channel) {
@@ -373,25 +313,19 @@ void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& par
             client.write(":" + server.getServerName() + " 404 " + client.getNickName() + " " + target + " :Cannot send to channel\r\n");
             return;
         }
-
-        // Broadcast message to all channel members
         channel->broadcast(":" + client.getPrefix() + " PRIVMSG " + target + " :" + message + "\r\n", &client);
     } else {
-        // Private message to a user
-        Client *targetClient = nullptr;
+        Client *targetClient = NULL;
         for (std::vector<Client*>::iterator it = server.clients.begin(); it != server.clients.end(); ++it) {
             if ((*it)->getNickName() == target) {
                 targetClient = *it;
                 break;
             }
         }
-
         if (!targetClient) {
             client.write(":" + server.getServerName() + " 401 " + client.getNickName() + " " + target + " :No such nick\r\n");
             return;
         }
-
-        // Send message to target client
         targetClient->write(":" + client.getPrefix() + " PRIVMSG " + target + " :" + message + "\r\n");
     }
 }

@@ -30,7 +30,6 @@ Channel & Channel::operator = (const Channel &other)
 
 Channel::~Channel() {}
 
-//getters
 std::string Channel::getName() const
 {
     return (_name);
@@ -94,7 +93,6 @@ std::string Channel::getChannelMode() const
   return (modeStr);
 }
 
-//setters
 void Channel::setChannelKey(const std::string &key)
 {
     _channelKey = key;
@@ -136,7 +134,6 @@ void Channel::setInvited(Client *client)
     _invitedList.push_back(client);
 }
 
-//member functions
 void Channel::addClient(Client *client)
 {
     _clientList.push_back(client);

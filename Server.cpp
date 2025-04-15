@@ -20,25 +20,29 @@ Server::Server(std::string name) : _serverName(name) {
 
 Server::~Server()
 {
-	std::string quitMsg = "server QUIT :Server shutting down\n";
+    std::string quitMsg = "server QUIT :Server shutting down\n";
 
 	if (!clients.empty())
 	{
 		for (size_t i = 0; i < clients.size(); i++) {
 			int clientSocket = clients[i]->getSocketFd();
 			
+            if (clients[i]->getChannelCount() > 0)
+            {
+                for (std::map<std::string, Channel *>::iterator it = channels.begin(); it != channels.end(); it++)
+                    delete it->second;
+                channels.clear();
+            }
 			if (clientSocket > 0) {
 				send(clientSocket, quitMsg.c_str(), quitMsg.length(), 0);
 				close(clientSocket);
 			}
-
 			delete clients[i];
 		}
+        clients.clear();
 	}
-	clients.clear();
 	std::cout << "server QUIT :Server shutting down\r\n";
 }
-
 size_t Server::getPort(void) const
 {
 	return (this->_port);
@@ -59,18 +63,9 @@ void Server::portAndPass(const std::string& port, std::string password)
 	}
 	char *end;
 	this->_port = strtol(port.c_str(), &end, 10);
-	if (this->_port < 0 ||  this->_port > 65535)
-		throw std::runtime_error("Invalid Port");
+	if (this->_port < 6665 ||  this->_port > 6669)
+		throw std::runtime_error("Port should be within 6665 and 6669");
 	this->_password = password;
-}
-
-static void checkError(int result, const char *error, const std::string &errmeg)
-{
-	if (result < 0)
-	{
-		perror(error);
-		throw std::runtime_error(errmeg);
-	}
 }
 
 void Server::setFds() {
@@ -123,7 +118,6 @@ void    Server::creatingServer(Server &server)
 	int	sockOpt = 1;
 
 	_address.sin_family = AF_INET;
-	// INADDR_ANY is a special IP address that tells the socket to listen on all available network interfaces.
 	_address.sin_addr.s_addr = INADDR_ANY;
 	_address.sin_port = htons(_port);
 	_addrlen = sizeof(_address);
@@ -134,7 +128,6 @@ void    Server::creatingServer(Server &server)
 	checkError(bind(_socketFd, (struct sockaddr *)&_address, _addrlen), "bind failed","Error setting socket flags"); // binding to the socket
 	checkError(listen(_socketFd, 500), "listen", "Error: Failed to start listening for incoming connections"); // letting all the clients know that its available for connection
 	std::cout << "Server started and listening for incoming connections on port " << _port << std::endl;
-	// waiting for client connection
 	server.run();
 }
 
@@ -145,7 +138,7 @@ void   Server::disconnectClient(int socket, const std::string reason)
 		if ((*it)->getSocketFd() == socket)
 		{
 			Client *client = *it;
-			std::map<std::string, Channel *> :: iterator chanIter = channels.begin();  // Deleting client from all channels
+			std::map<std::string, Channel *> :: iterator chanIter = channels.begin();
 			while (chanIter != channels.end())
 			{
 				if(chanIter->second->isClientInChannel(client))

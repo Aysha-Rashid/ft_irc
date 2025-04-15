@@ -1,6 +1,7 @@
 # ifndef UTILS_HPP
 # define UTILS_HPP
 
+#include "Ft_Irc.hpp"
 # include <iostream>
 # include <vector>
 
