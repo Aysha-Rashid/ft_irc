@@ -28,7 +28,7 @@ void handleMode(Server &server, Client &client, std::vector<std::string> &params
 	std::vector <std::string> reqArgs;
 	for (size_t i = 2; i < params.size(); i++)
 		reqArgs.push_back(params[i]);
-	bool isAdded;
+	bool isAdded = true;
 	std::string channelModes = "";
 	Client *targetClient;
 	for (size_t i = 0; i < params[1].size(); i++)
@@ -54,15 +54,15 @@ void handleMode(Server &server, Client &client, std::vector<std::string> &params
 					}
 					break;
 		case 't':
-					if(isAdded && channel->getTopicPrivilege() == false) // not sure
+					if(isAdded)
 					{
 						channel->setTopicPrivilege(true);
-						channelModes.append("+t ");
+						channelModes.append(" +t ");
 					}
 					else if (!isAdded)
 					{
 						channel->setTopicPrivilege(false);
-						channelModes.append("-t ");
+						channelModes.append(" -t ");
 					}
 					break;
 		case 'l':
@@ -92,7 +92,7 @@ void handleMode(Server &server, Client &client, std::vector<std::string> &params
 						}
 						channelModes.append("+l " + reqArgs[0]);
 					}
-					else if(!isAdded && reqArgs.size() > 0)
+					else if(!isAdded)
 					{
 						channelModes.append("-l * ");
 						channel->setUserLimit(0);
@@ -134,13 +134,14 @@ void handleMode(Server &server, Client &client, std::vector<std::string> &params
 					if(isAdded && !channel->isOperator(targetClient))
 					{
 						channel->addOperator(targetClient);
-						channelModes.append("+o " + reqArgs[0]);
+						channelModes.append(" +o " + reqArgs[0]);
 					}
 					else
 					{
 						channel->removeOperator(targetClient);
-						channelModes.append("+o " + reqArgs[0]);
+						channelModes.append(" -o " + reqArgs[0]);
 					}
+					reqArgs.erase(reqArgs.begin());   
 					break;
 				}
 		default:
