@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FT_IRC_HPP
+#define FT_IRC_HPP
 #include <iostream>
 #include <exception>
 #include <vector>
@@ -9,7 +10,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <fcntl.h>
-#include <vector>
+// #include <vector>
 #include <string>
 #include <signal.h>
 #include <sstream>
@@ -35,3 +36,30 @@
 
 # define RPL_WELCOME std::string (" :Welcome to the IRC Network, ") 
 
+class Server;
+
+typedef void (*CommandHandler)(Server &server, Client &client, std::vector<std::string>&);
+
+struct Command{
+	std::string label;
+	CommandHandler handler;
+	clientState requiredAuthState;
+	Command(const std::string& lbl, CommandHandler handle,  clientState auth) : label(lbl), handler(handle), requiredAuthState(auth) {}
+};
+
+void handlePass(Server &server, Client &client, std::vector<std::string>& params);
+void handleNick(Server &server, Client &client, std::vector<std::string>& params);
+void handleUser(Server &server, Client &client, std::vector<std::string>& params);
+void handleJoin(Server &server, Client &client, std::vector<std::string>& param);
+void handlePart(Server &server, Client &client, std::vector<std::string>& param);
+void handleInvite(Server &server, Client &client, std::vector<std::string>& param);
+void handleMode(Server &server, Client &client, std::vector<std::string>& param);
+void handlePing(Server &server, Client &client, std::vector<std::string>& param);
+void handleQuit(Server &server, Client &client, std::vector<std::string>& param);
+void handleWho(Server &server, Client &client, std::vector<std::string>& param);
+void handleKick(Server &server, Client &client, std::vector<std::string>& param);
+void handlePrivMsg(Server &server, Client &client, std::vector<std::string>& param);
+void handleTopic(Server &server, Client &client, std::vector<std::string>& param);
+void handlePong(Server &server, Client &client, std::vector<std::string>& param);
+
+#endif

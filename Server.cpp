@@ -214,9 +214,9 @@ void Server::ClientCommunication()
 									line += " ";
 								std::vector <std::string> params = split(line.substr(cmd->label.size() + 1),' ');
 								if (!cmd->label.compare("QUIT"))
-										out = 1;
+									out = 1;
 								if(cmd->requiredAuthState == UNAUTHENTICATED)
-										cmd->handler(*this, *client, params);
+									cmd->handler(*this, *client, params);
 								else if(cmd->requiredAuthState == AUTHENTICATED && client->getState() != UNAUTHENTICATED)
 									cmd->handler(*this, *client, params);
 								else if(cmd->requiredAuthState == REGISTERED && client->getState() == REGISTERED)

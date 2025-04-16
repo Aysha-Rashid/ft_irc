@@ -49,8 +49,8 @@ void handleNick(Server &server, Client &client, std::vector<std::string>& params
 				if (!client.getUserName().empty())
 				{
 					client.setState(REGISTERED);
-					client.write(":" + server.getServerName() + " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" ,to the IRC server\r\n");	
-					std::cout << " 001 " + client.getNickName() + " :Welcome " +client.getNickName() +" to the IRC server\r\n";
+					client.write(":" + server.getServerName() +" 001 " + client.getNickName() + " :Welcome to the " + server.getServerName() + " Network, " +client.getNickName() + "\r\n");	
+					std::cout << ":" + server.getServerName() +" 001 " + client.getNickName() + " :Welcome to the " + server.getServerName() + " Network, " +client.getNickName() + "\r\n";
 				}
 			}
 			else
